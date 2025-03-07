@@ -127,7 +127,7 @@ export const tilemap = (function () {
 
     class Tilemap {
 
-        static async loadFromJson(filename) {
+        static async loadFromJson(filename, tilesetSources) {
             let data = await assets.loadJson(filename);
 
             let tilemap = new Tilemap(data.width,
@@ -148,7 +148,9 @@ export const tilemap = (function () {
             for (let tilesetData of data.tilesets) {
                 let tileset;
                 if(tilesetData.source) {
-                    tileset = await Tileset.getOrLoadFromJson(tilesetData.source);
+                    const tokens = tilesetData.source.split(/(\/|\\\/)/);
+                    const tilesetName = tokens[tokens.length - 1].split(".tsj")[0];
+                    tileset = await Tileset.getOrLoadFromJson(tilesetSources[tilesetName]);
                 }
                 else {
                     tileset = new Tileset(tilesetData);

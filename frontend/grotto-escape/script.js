@@ -457,13 +457,11 @@ lancelot.Lancelot.init({
     viewportMode: "fit",
     async preload() {
 
-        AssetsManager.addImage("potion", await loadImage("potion.png"));
-        AssetsManager.addImage("bat", await loadImage("bat.png"));
-        AssetsManager.addImage("cg", await loadImage("Code.Geass.wallpaper.jpg"));
-        AssetsManager.addImage("tileset", await loadImage("grotto-escape/environment-tiles_extruded.png"));
-        AssetsManager.addImage("player", await loadImage("grotto-escape/player.png"));
+        AssetsManager.addImage("bat", await loadImage("assets/bat.png"));
+        AssetsManager.addImage("tileset", await loadImage("assets/environment-tiles_extruded.png"));
+        AssetsManager.addImage("player", await loadImage("assets/player.png"));
 
-        let tilemap = await lancelot.graphics.tilemap.Tilemap.loadFromJson("test1.tmj");
+        let tilemap = await lancelot.graphics.tilemap.Tilemap.loadFromJson("assets/test1.tmj", { "environment-tiles": "assets/environment-tiles.tsj" });
         lancelot.utils.Store.set("tilemap", tilemap);
 
         lancelot.graphics.Animations.create("bat.fly",
@@ -493,11 +491,9 @@ lancelot.Lancelot.init({
             0, 0
         );
 
-        AssetsManager.createTexture("potion", AssetsManager.getImage("potion"), {}, false);
         AssetsManager.createTexture("bat", AssetsManager.getImage("bat"), {
             anim: lancelot.graphics.Animations.get("bat.fly")
         }, true);
-        AssetsManager.createTexture("cg", AssetsManager.getImage("cg"), {}, false);
         AssetsManager.createTexture("player", AssetsManager.getImage("player"), {}, false);
     }
 });
