@@ -1,4 +1,4 @@
-import { lancelot } from "./lancelot/src/Lancelot.js";
+import { lancelot } from "./lancelot/dist/lancelot-cdn-module.js";
 const { AssetsManager, loadImage } = lancelot.utils.assets;
 const { Vector } = lancelot.math;
 

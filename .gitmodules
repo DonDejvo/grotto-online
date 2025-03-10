@@ -1,3 +1,6 @@
 [submodule "frontend/lancelot"]
 	path = frontend/lancelot
 	url = git@github.com:DonDejvo/lancelot-webgl.git
+[submodule "backend/lancelot-signal-server"]
+	path = backend/lancelot-signal-server
+	url = git@github.com:DonDejvo/lancelot-signal-server.git

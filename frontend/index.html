@@ -12,10 +12,32 @@
             overflow: hidden;
             position: absolute;
             background: #202020;
+            color: #fff;
         }
     </style>
 </head>
 <body>
-    <script src="script.js" type="module"></script>
+    <div>
+        <h2>Create room</h2>
+        <div>
+            <label for="create-room-name">Name</label>
+            <input type="text" id="create-room-name">
+        </div>
+        <div>
+            <button id="create-room-btn">Create</button>
+        </div>
+    </div>
+    <div>
+        <h2>Join room</h2>
+        <div>
+            <label for="join-room-name">Name</label>
+            <input type="text" id="join-room-name">
+        </div>
+        <div>
+            <button id="join-room-btn">Join</button>
+        </div>
+    </div>
+    <div id="status"></div>
+    <script src="script1.js" type="module"></script>
 </body>
 </html>
