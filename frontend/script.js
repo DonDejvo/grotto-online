@@ -1,8 +1,24 @@
 import { lancelot } from "./lancelot/dist/lancelot-cdn-module.js";
 const { AssetsManager, loadImage } = lancelot.utils.assets;
 const { Vector } = lancelot.math;
+const { ChannelServerController, ChannelClientController } = lancelot.network;
 
 const TILE_SIZE = 16;
+const TEST_ROOM = "GrottoTest";
+const SIGNAL_SERVER_HOST = "localhost:8080";
+
+class PlayerSerializer extends lancelot.Component {
+    serialize() {
+        const controller = this.getComponent("controller");
+        const playerData = {};
+        playerData.position = this._entity.transform.position;
+        playerData.velocity = controller._velocity;
+        playerData.grounded = controller._grounded;
+        playerData.climbing = controller._climbing;
+        playerData.input = controller._input;
+        return JSON.stringify(playerData);
+    }
+}
 
 class Mover extends lancelot.Component {
     constructor() {
@@ -203,7 +219,7 @@ class Mover extends lancelot.Component {
 }
 
 class PlayerController extends Mover {
-    constructor() {
+    constructor(params) {
         super();
         this._maxSpeed = 80;
         this._acceleration = 300;
@@ -221,6 +237,8 @@ class PlayerController extends Mover {
         };
         this._ledders = [];
         this._justClimbed = 0;
+        this._remote = params.remote ?? false;
+        this._roomCreated = false;
     }
     start() {
         const sprite = this.getComponent("sprite");
@@ -228,7 +246,9 @@ class PlayerController extends Mover {
     }
     update(dt) {
 
-        this._updateInput();
+        if(!this._remote) {
+            this._updateInput();
+        }
 
         this._moving = false;
         if (this._justClimbed > 0) --this._justClimbed;
@@ -355,7 +375,7 @@ class PlayerController extends Mover {
             else if (this._input.right) {
                 this._entity.transform.scale.x = 1;
             }
-            
+
             if (!this._grounded) {
                 if (!sprite.isAnimPlaying("player.jump"))
                     sprite.playAnim(lancelot.graphics.Animations.get("player.jump"), true);
@@ -374,11 +394,42 @@ class PlayerController extends Mover {
     }
 
     _updateInput() {
+        if(!this._roomCreated && lancelot.input.KeyListener.isPressed("KeyK")) {
+            
+            this._createRoom();
+        }
+        if(lancelot.input.KeyListener.isPressed("KeyJ")) {
+            this._joinRoom();
+        }
+        if(lancelot.input.KeyListener.isPressed("KeyL")) {
+            this._leaveRoom();
+        }
+
         this._input.left = lancelot.input.KeyListener.isDown("KeyA");
         this._input.right = lancelot.input.KeyListener.isDown("KeyD");
         this._input.up = lancelot.input.KeyListener.isDown("KeyW");
         this._input.down = lancelot.input.KeyListener.isDown("KeyS");
         this._input.jump = lancelot.input.KeyListener.isPressed("Space");
+    }
+
+    _joinRoom() {
+        const client = this.getComponent("client");
+        client._channelClient.joinRoom(TEST_ROOM);
+    }
+
+    _leaveRoom() {
+        const client = this.getComponent("client");
+        client._channelClient.leaveRoom();
+    }
+
+    _createRoom() {
+        const serverEntity = this._entity._scene.createEntity("server");
+        serverEntity.addComponent("server", new ChannelServerController({
+            room: TEST_ROOM,
+            host: SIGNAL_SERVER_HOST
+        }));
+
+        this._roomCreated = true;
     }
 }
 
@@ -408,6 +459,7 @@ class CameraControler extends lancelot.Component {
 
 class MyScene extends lancelot.Scene {
     init() {
+        this.players = [];
 
         this.camera.main._entity.addComponent("controller", new CameraControler());
         this.camera.main._entity.transform.scale.set(4, 4);
@@ -427,24 +479,91 @@ class MyScene extends lancelot.Scene {
             let o = msg.object;
             switch (o.name) {
                 case "player": {
-                    let player = this.createEntity("player");
+                    let player = this.createPlayer(false, msg.layer.zIndex);
+                    this.player = player;
                     player.transform.position.set(o.x, o.y);
-                    player.addComponent("sprite", new lancelot.graphics.AnimatedSpriteDrawable({
-                        sprite: new lancelot.graphics.Sprite(AssetsManager.getTexture("player")),
-                        size: new Vector(TILE_SIZE, TILE_SIZE),
-                        offset: new Vector(),
-                        zIndex: msg.layer.zIndex,
-                        camera: this.camera.main
+                    player.addComponent("Serializer", new PlayerSerializer());
+                    player.addComponent("client", new ChannelClientController({
+                        host: SIGNAL_SERVER_HOST
                     }));
-                    player.addComponent("collider", new lancelot.geometry.Collider({
-                        offset: new Vector(),
-                        shape: new lancelot.geometry.shape.Rect(10, 16)
-                    }));
-                    player.addComponent("controller", new PlayerController());
+                    player.registerHandler("connect", () => {
+                        this.onPlayerConnect();
+                    });
+                    player.registerHandler("disconnect", () => {
+                        this.onPlayerDisconnect();
+                    });
+                    player.registerHandler("data", (msg) => {
+                        this.onPlayerData(msg.data);
+                    });
+                    player.registerHandler("join", (msg) => {
+                        if(msg.socketId == player.getComponent("controller").socketId) {
+                            return;
+                        }
+                        let entity = this.createPlayer(true);
+                        entity.getComponent("controller").socketId = msg.socketId;
+                        
+                    });
+                    player.registerHandler("leave", (msg) => {
+                        const entityToRemove = this.players.find(e => e.getComponent("controller").socketId == msg.socketId);
+                        this.removeEntity(entityToRemove);
+                        this.players.splice(this.players.indexOf(entityToRemove), 1);
+                    });
                     break;
                 }
             }
         });
+    }
+
+    onPlayerConnect() {
+        const socketId = this.player.getComponent("client")._channelClient.signalServer.socket.id;
+        this.player.getComponent("controller").socketId = socketId;
+    }
+
+    onPlayerDisconnect() {
+        for(let entityToRemove of this.players) {
+            this.removeEntity(entityToRemove);
+        }
+        this.players.length = 0;
+    }
+
+    onPlayerData(data) {
+        for(let entityData of data) {
+            if(entityData.socketId == this.player.getComponent("controller").socketId) {
+                continue;
+            }
+            
+            let entity = this.players.find(e => e.getComponent("controller").socketId == entityData.socketId);
+            if(!entity) {
+                entity = this.createPlayer(true);
+                entity.getComponent("controller").socketId = entityData.socketId;
+            }
+            if(entityData.data) {
+                const controller = entity.getComponent("controller");
+                entity.transform.position.copy(entityData.data.position);
+                controller._input = entityData.data.input;
+                controller._velocity.copy(entityData.data.velocity);
+                controller._grounded = entityData.data.grounded;
+                controller._climbing = entityData.data.climbing;
+            }
+        }
+    }
+
+    createPlayer(remote, zIndex = 2) {
+        const player = remote ? this.createEntity() : this.createEntity("player");
+        player.addComponent("sprite", new lancelot.graphics.AnimatedSpriteDrawable({
+            sprite: new lancelot.graphics.Sprite(AssetsManager.getTexture("player")),
+            size: new Vector(TILE_SIZE, TILE_SIZE),
+            offset: new Vector(),
+            zIndex,
+            camera: this.camera.main
+        }));
+        player.addComponent("collider", new lancelot.geometry.Collider({
+            offset: new Vector(),
+            shape: new lancelot.geometry.shape.Rect(10, 16)
+        }));
+        player.addComponent("controller", new PlayerController({ remote }));
+        this.players.push(player);
+        return player;
     }
 }
 
