@@ -459,7 +459,7 @@ class CameraControler extends lancelot.Component {
 
 class MyScene extends lancelot.Scene {
     init() {
-        this.players = [];
+        this.remotePlayers = [];
 
         this.camera.main._entity.addComponent("controller", new CameraControler());
         this.camera.main._entity.transform.scale.set(4, 4);
@@ -504,9 +504,9 @@ class MyScene extends lancelot.Scene {
                         
                     });
                     player.registerHandler("leave", (msg) => {
-                        const entityToRemove = this.players.find(e => e.getComponent("controller").socketId == msg.socketId);
+                        const entityToRemove = this.remotePlayers.find(e => e.getComponent("controller").socketId == msg.socketId);
                         this.removeEntity(entityToRemove);
-                        this.players.splice(this.players.indexOf(entityToRemove), 1);
+                        this.remotePlayers.splice(this.remotePlayers.indexOf(entityToRemove), 1);
                     });
                     break;
                 }
@@ -520,10 +520,10 @@ class MyScene extends lancelot.Scene {
     }
 
     onPlayerDisconnect() {
-        for(let entityToRemove of this.players) {
+        for(let entityToRemove of this.remotePlayers) {
             this.removeEntity(entityToRemove);
         }
-        this.players.length = 0;
+        this.remotePlayers.length = 0;
     }
 
     onPlayerData(data) {
@@ -532,7 +532,7 @@ class MyScene extends lancelot.Scene {
                 continue;
             }
             
-            let entity = this.players.find(e => e.getComponent("controller").socketId == entityData.socketId);
+            let entity = this.remotePlayers.find(e => e.getComponent("controller").socketId == entityData.socketId);
             if(!entity) {
                 entity = this.createPlayer(true);
                 entity.getComponent("controller").socketId = entityData.socketId;
@@ -548,13 +548,13 @@ class MyScene extends lancelot.Scene {
         }
     }
 
-    createPlayer(remote, zIndex = 2) {
+    createPlayer(remote) {
         const player = remote ? this.createEntity() : this.createEntity("player");
         player.addComponent("sprite", new lancelot.graphics.AnimatedSpriteDrawable({
             sprite: new lancelot.graphics.Sprite(AssetsManager.getTexture("player")),
             size: new Vector(TILE_SIZE, TILE_SIZE),
             offset: new Vector(),
-            zIndex,
+            zIndex: 2,
             camera: this.camera.main
         }));
         player.addComponent("collider", new lancelot.geometry.Collider({
@@ -562,7 +562,9 @@ class MyScene extends lancelot.Scene {
             shape: new lancelot.geometry.shape.Rect(10, 16)
         }));
         player.addComponent("controller", new PlayerController({ remote }));
-        this.players.push(player);
+        if(remote) {
+            this.remotePlayers.push(player);
+        }
         return player;
     }
 }
