@@ -5,7 +5,35 @@ const { ChannelServerController, ChannelClientController } = lancelot.network;
 
 const TILE_SIZE = 16;
 const TEST_ROOM = "GrottoTest";
-const SIGNAL_SERVER_HOST = "localhost:8080";
+const SIGNAL_SERVER_HOST = "https://grotto-online.onrender.com";
+const REFRESH_RATE = 1000 / 60;
+const RTC_CONFIG = {
+    iceServers: [
+        {
+            urls: "stun:stun.relay.metered.ca:80",
+        },
+        {
+            urls: "turn:global.relay.metered.ca:80",
+            username: "2d1a7bde06e7419a33bccea0",
+            credential: "z6QsgPyvDvCVUg0G",
+        },
+        {
+            urls: "turn:global.relay.metered.ca:80?transport=tcp",
+            username: "2d1a7bde06e7419a33bccea0",
+            credential: "z6QsgPyvDvCVUg0G",
+        },
+        {
+            urls: "turn:global.relay.metered.ca:443",
+            username: "2d1a7bde06e7419a33bccea0",
+            credential: "z6QsgPyvDvCVUg0G",
+        },
+        {
+            urls: "turns:global.relay.metered.ca:443?transport=tcp",
+            username: "2d1a7bde06e7419a33bccea0",
+            credential: "z6QsgPyvDvCVUg0G",
+        },
+    ],
+};
 
 class PlayerSerializer extends lancelot.Component {
     serialize() {
@@ -246,7 +274,7 @@ class PlayerController extends Mover {
     }
     update(dt) {
 
-        if(!this._remote) {
+        if (!this._remote) {
             this._updateInput();
         }
 
@@ -394,14 +422,14 @@ class PlayerController extends Mover {
     }
 
     _updateInput() {
-        if(!this._roomCreated && lancelot.input.KeyListener.isPressed("KeyK")) {
-            
+        if (!this._roomCreated && lancelot.input.KeyListener.isPressed("KeyK")) {
+
             this._createRoom();
         }
-        if(lancelot.input.KeyListener.isPressed("KeyJ")) {
+        if (lancelot.input.KeyListener.isPressed("KeyJ")) {
             this._joinRoom();
         }
-        if(lancelot.input.KeyListener.isPressed("KeyL")) {
+        if (lancelot.input.KeyListener.isPressed("KeyL")) {
             this._leaveRoom();
         }
 
@@ -426,7 +454,9 @@ class PlayerController extends Mover {
         const serverEntity = this._entity._scene.createEntity("server");
         serverEntity.addComponent("server", new ChannelServerController({
             room: TEST_ROOM,
-            host: SIGNAL_SERVER_HOST
+            host: SIGNAL_SERVER_HOST,
+            refreshRate: REFRESH_RATE,
+            rtcConfig: RTC_CONFIG
         }));
 
         this._roomCreated = true;
@@ -484,7 +514,9 @@ class MyScene extends lancelot.Scene {
                     player.transform.position.set(o.x, o.y);
                     player.addComponent("Serializer", new PlayerSerializer());
                     player.addComponent("client", new ChannelClientController({
-                        host: SIGNAL_SERVER_HOST
+                        host: SIGNAL_SERVER_HOST,
+                        refreshRate: REFRESH_RATE,
+                        rtcConfig: RTC_CONFIG
                     }));
                     player.registerHandler("connect", () => {
                         this.onPlayerConnect();
@@ -496,12 +528,12 @@ class MyScene extends lancelot.Scene {
                         this.onPlayerData(msg.data);
                     });
                     player.registerHandler("join", (msg) => {
-                        if(msg.socketId == player.getComponent("controller").socketId) {
+                        if (msg.socketId == player.getComponent("controller").socketId) {
                             return;
                         }
                         let entity = this.createPlayer(true);
                         entity.getComponent("controller").socketId = msg.socketId;
-                        
+
                     });
                     player.registerHandler("leave", (msg) => {
                         const entityToRemove = this.remotePlayers.find(e => e.getComponent("controller").socketId == msg.socketId);
@@ -520,24 +552,24 @@ class MyScene extends lancelot.Scene {
     }
 
     onPlayerDisconnect() {
-        for(let entityToRemove of this.remotePlayers) {
+        for (let entityToRemove of this.remotePlayers) {
             this.removeEntity(entityToRemove);
         }
         this.remotePlayers.length = 0;
     }
 
     onPlayerData(data) {
-        for(let entityData of data) {
-            if(entityData.socketId == this.player.getComponent("controller").socketId) {
+        for (let entityData of data) {
+            if (entityData.socketId == this.player.getComponent("controller").socketId) {
                 continue;
             }
-            
+
             let entity = this.remotePlayers.find(e => e.getComponent("controller").socketId == entityData.socketId);
-            if(!entity) {
+            if (!entity) {
                 entity = this.createPlayer(true);
                 entity.getComponent("controller").socketId = entityData.socketId;
             }
-            if(entityData.data) {
+            if (entityData.data) {
                 const controller = entity.getComponent("controller");
                 entity.transform.position.copy(entityData.data.position);
                 controller._input = entityData.data.input;
@@ -562,7 +594,7 @@ class MyScene extends lancelot.Scene {
             shape: new lancelot.geometry.shape.Rect(10, 16)
         }));
         player.addComponent("controller", new PlayerController({ remote }));
-        if(remote) {
+        if (remote) {
             this.remotePlayers.push(player);
         }
         return player;
