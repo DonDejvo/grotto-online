@@ -5,5 +5,5 @@ await esbuild.build({
   bundle: true,
   format: "iife",
   outfile: "dist/script.js",
-  minify: true
+  minify: false
 });

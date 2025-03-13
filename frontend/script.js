@@ -5,34 +5,10 @@ const { ChannelServerController, ChannelClientController } = lancelot.network;
 
 const TILE_SIZE = 16;
 const TEST_ROOM = "GrottoTest";
-const SIGNAL_SERVER_HOST = "https://grotto-online.onrender.com";
+const SIGNAL_SERVER_HOST =  "localhost:8080"; //"https://grotto-online.onrender.com";
 const REFRESH_RATE = 1000 / 60;
 const RTC_CONFIG = {
-    iceServers: [
-        {
-            urls: "stun:stun.relay.metered.ca:80",
-        },
-        {
-            urls: "turn:global.relay.metered.ca:80",
-            username: "2d1a7bde06e7419a33bccea0",
-            credential: "z6QsgPyvDvCVUg0G",
-        },
-        {
-            urls: "turn:global.relay.metered.ca:80?transport=tcp",
-            username: "2d1a7bde06e7419a33bccea0",
-            credential: "z6QsgPyvDvCVUg0G",
-        },
-        {
-            urls: "turn:global.relay.metered.ca:443",
-            username: "2d1a7bde06e7419a33bccea0",
-            credential: "z6QsgPyvDvCVUg0G",
-        },
-        {
-            urls: "turns:global.relay.metered.ca:443?transport=tcp",
-            username: "2d1a7bde06e7419a33bccea0",
-            credential: "z6QsgPyvDvCVUg0G",
-        },
-    ],
+    
 };
 
 class PlayerSerializer extends lancelot.Component {

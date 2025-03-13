@@ -1,4 +1,625 @@
-(()=>{var ae=Object.defineProperty,B=(t,e)=>{for(var i in e)ae(t,i,{get:e[i],enumerable:!0})},Et={};B(Et,{AnimatedSpriteDrawable:()=>ce,Animations:()=>he,Drawable:()=>At,OrthogonalMap:()=>de,OrthogonalMapRenderer:()=>le,Sprite:()=>D,SpriteDrawable:()=>St,tilemap:()=>fe});var he=class{static _anims=new Map;static create(t,e,i,s,n,r){this._anims.set(t,{name:t,frames:e,frameWidth:i,frameHeight:s,margin:n,spacing:r})}static get(t){return this._anims.get(t)}},S=class Tt{static _ids=0;constructor(){this._id=Tt._ids++,this._entity=null}get id(){return this._id}getComponent(e){return this._entity.getComponent(e)}broadcast(e){this._entity.broadcast(e)}start(){}update(e){}destroy(){}},At=class extends S{constructor(t){super(),this._offset=t.offset,this._size=t.size,this._zIndex=t.zIndex,this._fixed=t.fixed??!1,this._camera=t.camera,this._angle=t.angle??0}get zIndex(){return this._zIndex}set zIndex(t){this._zIndex=t}get fixed(){return this._fixed}get offset(){return this._offset}get size(){return this._size}get camera(){return this._camera}get angle(){return this._angle}set angle(t){this._angle=t}},St=class extends At{constructor(t){super(t),this._sprite=t.sprite}get zIndex(){return this._zIndex}set zIndex(t){this._zIndex=t,this._renderObject.zIndex=t,this._entity._scene.renderer.remove(this._renderObject),this._entity._scene.renderer.add(this._renderObject)}get sprite(){return this._sprite}start(){let t=this._entity.transform.getWorldPosition();this._renderObject={sprite:this._sprite,x:t.x+this._offset.x,y:t.y+this._offset.y,sx:this._entity.transform.scale.x*this._size.x,sy:this._entity.transform.scale.y*this._size.y,zIndex:this._zIndex,fixed:this._fixed,camera:this._camera,angle:this._angle},this._entity._scene.renderer.add(this._renderObject)}destroy(){this._entity._scene.renderer.remove(this._renderObject)}update(){this._fixed||this._updateRenderObject()}_updateRenderObject(){let t=this._entity.transform.getWorldPosition();this._renderObject.x=t.x+this._offset.x,this._renderObject.y=t.y+this._offset.y,this._renderObject.sx=this._entity.transform.scale.x*this._size.x,this._renderObject.sy=this._entity.transform.scale.y*this._size.y,this._renderObject.angle=this._angle}},ce=class extends St{constructor(t){super(t),this._fixed=!1,this._animPlaying=!1}isAnimPlaying(t){return this._anim&&t==this._anim.name}playAnim(t,e){this._anim=t,this._animPlaying=!0,this._animCounter=0,this._animCurFrame=0,this._animLoop=e,this._animFirst=!0}resumeAnim(){this._animPlaying=!0}pauseAnim(){this._animPlaying=!1}update(t){this._updateAnim(t),this._updateRenderObject()}_updateAnim(t){if(this._animPlaying){if(this._animFirst||this._animCounter>=this._anim.frames[this._animCurFrame].duration){if(this._animFirst=!1,this._animCounter=0,++this._animCurFrame>=this._anim.frames.length)if(this._animLoop)this._animCurFrame=0;else{this._animPlaying=!1,this.broadcast({topic:"animEnd",animName:this._anim.name});return}let e=this._anim.frames[this._animCurFrame];this._sprite.setRegion(this._anim.margin+e.x*(this._anim.frameWidth+this._anim.spacing),this._anim.margin+e.y*(this._anim.frameHeight+this._anim.spacing),this._anim.frameWidth,this._anim.frameHeight)}this._animCounter+=t}}},k=class kt{constructor(e=0,i=0){this.x=e,this.y=i}set(e,i){this.x=e,this.y=i}copy(e){return this.x=e.x,this.y=e.y,this}clone(){return new kt(this.x,this.y)}add(e){return this.x+=e.x,this.y+=e.y,this}sub(e){return this.x-=e.x,this.y-=e.y,this}scale(e){return this.x*=e,this.y*=e,this}lerp(e,i){return this.add(e.clone().sub(this).scale(i))}mag(){return(this.x*this.x+this.y*this.y)**.5}unit(){let e=this.mag();return e==0?(this.x=0,this.y=0):(this.x/=e,this.y/=e),this}rot(e){let i=Math.sin(e),s=Math.cos(e),n=s*this.x-i*this.y,r=i*this.x+s*this.y;return this.x=n,this.y=r,this}transformMat(e){let i=this.x,s=this.y,n=0,r=1,o=[e[0]*i+e[4]*s+e[8]*n+e[12]*r,e[1]*i+e[5]*s+e[9]*n+e[13]*r,e[2]*i+e[6]*s+e[10]*n+e[14]*r,e[3]*i+e[7]*s+e[11]*n+e[15]*r];return this.x=o[0]/o[3],this.y=o[1]/o[3],this}},D=class{constructor(t){this.texture=t,this.coords=[0,0,1,0,1,1,0,1],this.color=[1,1,1,1]}setRegion(t,e,i,s){this.coords[0]=t/this.texture.width,this.coords[1]=e/this.texture.height,this.coords[2]=(t+i)/this.texture.width,this.coords[3]=e/this.texture.height,this.coords[4]=(t+i)/this.texture.width,this.coords[5]=(e+s)/this.texture.height,this.coords[6]=t/this.texture.width,this.coords[7]=(e+s)/this.texture.height}},G=function(){let t=s=>{let n=s.createTexture();return s.bindTexture(s.TEXTURE_2D,n),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_WRAP_S,s.CLAMP_TO_EDGE),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_WRAP_T,s.CLAMP_TO_EDGE),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_MIN_FILTER,s.NEAREST),s.texParameteri(s.TEXTURE_2D,s.TEXTURE_MAG_FILTER,s.NEAREST),n};class e{static _ids=0;_gl;constructor(n,r,o){this._params=o,this._id=e._ids++,this._gl=n,this._data=r,this._tex=t(this._gl),this._gl.texImage2D(this._gl.TEXTURE_2D,0,this._gl.RGBA,this._gl.RGBA,this._gl.UNSIGNED_BYTE,this._data)}get id(){return this._id}get width(){return this._data.width}get height(){return this._data.height}bind(){this._gl.bindTexture(this._gl.TEXTURE_2D,this._tex)}unbind(){this._gl.bindTexture(this._gl.TEXTURE_2D,null)}update(){}destroy(){this._gl.deleteTexture(this._tex)}}class i extends e{constructor(n,r,o){super(n,r,o),this._counter=0,this._curFrame=0,this._first=!0,this._initFrames()}_initFrames(){this._frames=[];let n=this._anim=this._params.anim,r=document.createElement("canvas").getContext("2d"),o=r.canvas.width=n.frameWidth,a=r.canvas.height=n.frameHeight,h=n.margin,c=n.spacing;for(let l of n.frames){r.beginPath(),r.clearRect(0,0,o,a),r.drawImage(this._data,h+l.x*(o+c),h+l.y*(a+c),o,a,0,0,o,a);let u=new Image;u.src=r.canvas.toDataURL(),this._frames.push(u)}}update(n){(this._first||this._counter>=this._anim.frames[this._curFrame].duration)&&(this._first=!1,this._counter=0,++this._curFrame>=this._frames.length&&(this._curFrame=0),this._gl.bindTexture(this._gl.TEXTURE_2D,this._tex),this._gl.texImage2D(this._gl.TEXTURE_2D,0,this._gl.RGBA,this._gl.RGBA,this._gl.UNSIGNED_BYTE,this._frames[this._curFrame])),this._counter+=n}}return{createAndSetupTexture:t,Texture:e,AnimatedTexture:i}}(),le=class extends S{constructor(t){super(),this._params=t,this._textures={tilesets:[],animatedTiles:[]},this._batches=[]}start(){let t=this._params.tilemap,e=t.getTilesets();for(let s=0;s<e.length;++s){let n=e[s],r=new G.Texture(this._entity._scene.renderer._gl,this._params.tilesets[n.name],{});this._textures.tilesets.push({name:n.name,texture:r});for(let o=0;o<n.tilecount;++o){let a=n.getTileByIndex(o);if(a.animation){let h=new G.AnimatedTexture(this._entity._scene.renderer._gl,this._params.tilesets[n.name],{anim:{frameWidth:n.tilewidth,frameHeight:n.tileheight,margin:n.margin,spacing:n.spacing,frames:a.animation.map(c=>{let l=n.getTileByIndex(c.tileid);return{x:l.x,y:l.y,duration:c.duration/1e3}})}});this._textures.animatedTiles.push({tileId:a.id,texture:h})}}}let i=t.getLayers();for(let s=0;s<i.length;++s){let n=i[s],r;switch(n.type){case"tilelayer":{r=this._entity._scene.renderer._createBatch(n.zIndex,!0,this._params.camera,!0);for(let o=0;o<n.height;++o)for(let a=0;a<n.width;++a){let h=n.getTile(a,o);if(h){let c;h.animation?c=new D(this._textures.animatedTiles.find(u=>u.tileId==h.id).texture):(c=new D(this._textures.tilesets.find(u=>u.name==h.tileset.name).texture),c.setRegion(h.tileset.margin+h.x*(t.tilewidth+h.tileset.spacing),h.tileset.margin+h.y*(t.tileheight+h.tileset.spacing),t.tilewidth,t.tileheight));let l={sprite:c,zIndex:s,fixed:!0,x:(a+n.x+.5)*t.tilewidth,y:(o+n.y+.5)*t.tileheight,sx:t.tilewidth,sy:t.tileheight,angle:0};r.spriteBatch.add(l)}}break}case"objectgroup":{let o=n.getObjects();r=this._entity._scene.renderer._createBatch(n.zIndex,!0,this._params.camera,!0);for(let a of o)if(a.gid){let h=t.getTileById(a.gid);if(!h)continue;let c;h.animation?c=new D(this._textures.animatedTiles.find(g=>g.tileId==h.id).texture):(c=new D(this._textures.tilesets.find(g=>g.name==h.tileset.name).texture),c.setRegion(h.tileset.margin+h.x*(t.tilewidth+h.tileset.spacing),h.tileset.margin+h.y*(t.tileheight+h.tileset.spacing),t.tilewidth,t.tileheight));let l=d.math.math.degToRad(a.rotation),u=new k(a.width/2,-a.height/2).rot(l),_={sprite:c,zIndex:s,fixed:!0,x:a.x+u.x,y:a.y+u.y,sx:a.width,sy:a.height,angle:l};r.spriteBatch.add(_)}break}}this._batches.push({batch:r,layerName:n.name})}}update(t){for(let i of this._textures.animatedTiles)i.texture.update(t);let e=this._params.tilemap.getLayers();for(let i of e){let s=this._batches.find(n=>n.layerName==i.name);s.batch.ambientColor[3]=i.opacity}}destroy(){for(let t of this._batches)this._entity._scene.renderer._removeBatch(t.batch);for(let t of this._textures.tilesets)t.destroy();for(let t of this._textures.animatedTiles)t.destroy()}},de=class extends S{constructor(t){super(),this._tilemap=t}get tilemap(){return this._tilemap}start(){for(let t of this._tilemap.getLayers()){if(t.type!="objectgroup")continue;let e=t.getObjects();for(let i of e)this.broadcast({topic:"tilemapObject",object:i,layer:t})}}},Bt=class{_gl;constructor(t,e,i,s){this._gl=t,this._vertexSource=e,this._fragmentSource=i,this._uniforms=s.map(n=>({name:n[0],type:n[1]}))}start(){this._program=this._gl.createProgram(),this._vertexShader=this._createShader(this._gl.VERTEX_SHADER,this._vertexSource),this._fragmentShader=this._createShader(this._gl.FRAGMENT_SHADER,this._fragmentSource),this._gl.attachShader(this._program,this._vertexShader),this._gl.attachShader(this._program,this._fragmentShader),this._gl.linkProgram(this._program),this._gl.useProgram(this._program);for(let t of this._uniforms)t.location=this._gl.getUniformLocation(this._program,"u_"+t.name)}destroy(){this._gl.deleteShader(this._vertexShader),this._gl.deleteShader(this._fragmentShader),this._gl.deleteProgram(this._program)}bind(){this._gl.useProgram(this._program)}unbind(){this._gl.useProgram(null)}supplyUniform(t,e){let i=this._uniforms.find(s=>s.name==t);if(i)switch(i.type){case"mat3":this._gl.uniformMatrix3fv(i.location,!1,e);break;case"mat4":this._gl.uniformMatrix4fv(i.location,!1,e);break;case"float":this._gl.uniform1f(i.location,e);break;case"float[]":this._gl.uniform1fv(i.location,e);break;case"vec2":this._gl.uniform2fv(i.location,e);break;case"vec3":this._gl.uniform3fv(i.location,e);break;case"vec4":this._gl.uniform4fv(i.location,e);break}}getUniform(t){return this._uniforms.find(e=>e.name==t)}_createShader(t,e){let i=this._gl.createShader(t);return this._gl.shaderSource(i,e),this._gl.compileShader(i),this._gl.getShaderParameter(i,this._gl.COMPILE_STATUS)==0&&console.log(this._gl.getShaderInfoLog(i)),i}},ue=function(){let t=`#version 300 es
+(() => {
+  // lancelot/dist/lancelot-cdn-module.js
+  var __defProp = Object.defineProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var index_exports = {};
+  __export(index_exports, {
+    AnimatedSpriteDrawable: () => AnimatedSpriteDrawable,
+    Animations: () => Animations,
+    Drawable: () => Drawable,
+    OrthogonalMap: () => OrthogonalMap,
+    OrthogonalMapRenderer: () => OrthogonalMapRenderer,
+    Sprite: () => Sprite,
+    SpriteDrawable: () => SpriteDrawable,
+    tilemap: () => tilemap
+  });
+  var Animations = class {
+    static _anims = /* @__PURE__ */ new Map();
+    static create(name, frames, frameWidth, frameHeight, margin, spacing) {
+      this._anims.set(name, {
+        name,
+        frames,
+        frameWidth,
+        frameHeight,
+        margin,
+        spacing
+      });
+    }
+    static get(name) {
+      return this._anims.get(name);
+    }
+  };
+  var Component = class _Component {
+    static _ids = 0;
+    constructor() {
+      this._id = _Component._ids++;
+      this._entity = null;
+    }
+    get id() {
+      return this._id;
+    }
+    getComponent(name) {
+      return this._entity.getComponent(name);
+    }
+    broadcast(msg) {
+      this._entity.broadcast(msg);
+    }
+    start() {
+    }
+    update(dt) {
+    }
+    destroy() {
+    }
+  };
+  var Drawable = class extends Component {
+    constructor(params) {
+      super();
+      this._offset = params.offset;
+      this._size = params.size;
+      this._zIndex = params.zIndex;
+      this._fixed = params.fixed ?? false;
+      this._camera = params.camera;
+      this._angle = params.angle ?? 0;
+    }
+    get zIndex() {
+      return this._zIndex;
+    }
+    set zIndex(value2) {
+      this._zIndex = value2;
+    }
+    get fixed() {
+      return this._fixed;
+    }
+    get offset() {
+      return this._offset;
+    }
+    get size() {
+      return this._size;
+    }
+    get camera() {
+      return this._camera;
+    }
+    get angle() {
+      return this._angle;
+    }
+    set angle(value2) {
+      this._angle = value2;
+    }
+  };
+  var SpriteDrawable = class extends Drawable {
+    constructor(params) {
+      super(params);
+      this._sprite = params.sprite;
+    }
+    get zIndex() {
+      return this._zIndex;
+    }
+    set zIndex(value2) {
+      this._zIndex = value2;
+      this._renderObject.zIndex = value2;
+      this._entity._scene.renderer.remove(this._renderObject);
+      this._entity._scene.renderer.add(this._renderObject);
+    }
+    get sprite() {
+      return this._sprite;
+    }
+    start() {
+      const worldPos = this._entity.transform.getWorldPosition();
+      this._renderObject = {
+        sprite: this._sprite,
+        x: worldPos.x + this._offset.x,
+        y: worldPos.y + this._offset.y,
+        sx: this._entity.transform.scale.x * this._size.x,
+        sy: this._entity.transform.scale.y * this._size.y,
+        zIndex: this._zIndex,
+        fixed: this._fixed,
+        camera: this._camera,
+        angle: this._angle
+      };
+      this._entity._scene.renderer.add(this._renderObject);
+    }
+    destroy() {
+      this._entity._scene.renderer.remove(this._renderObject);
+    }
+    update() {
+      if (!this._fixed) {
+        this._updateRenderObject();
+      }
+    }
+    _updateRenderObject() {
+      const worldPos = this._entity.transform.getWorldPosition();
+      this._renderObject.x = worldPos.x + this._offset.x;
+      this._renderObject.y = worldPos.y + this._offset.y;
+      this._renderObject.sx = this._entity.transform.scale.x * this._size.x;
+      this._renderObject.sy = this._entity.transform.scale.y * this._size.y;
+      this._renderObject.angle = this._angle;
+    }
+  };
+  var AnimatedSpriteDrawable = class extends SpriteDrawable {
+    constructor(params) {
+      super(params);
+      this._fixed = false;
+      this._animPlaying = false;
+    }
+    isAnimPlaying(animName) {
+      return this._anim && animName == this._anim.name;
+    }
+    playAnim(anim, loop) {
+      this._anim = anim;
+      this._animPlaying = true;
+      this._animCounter = 0;
+      this._animCurFrame = 0;
+      this._animLoop = loop;
+      this._animFirst = true;
+    }
+    resumeAnim() {
+      this._animPlaying = true;
+    }
+    pauseAnim() {
+      this._animPlaying = false;
+    }
+    update(dt) {
+      this._updateAnim(dt);
+      this._updateRenderObject();
+    }
+    _updateAnim(dt) {
+      if (!this._animPlaying) {
+        return;
+      }
+      if (this._animFirst || this._animCounter >= this._anim.frames[this._animCurFrame].duration) {
+        this._animFirst = false;
+        this._animCounter = 0;
+        if (++this._animCurFrame >= this._anim.frames.length) {
+          if (this._animLoop) {
+            this._animCurFrame = 0;
+          } else {
+            this._animPlaying = false;
+            this.broadcast({ topic: "animEnd", animName: this._anim.name });
+            return;
+          }
+        }
+        let frame = this._anim.frames[this._animCurFrame];
+        this._sprite.setRegion(
+          this._anim.margin + frame.x * (this._anim.frameWidth + this._anim.spacing),
+          this._anim.margin + frame.y * (this._anim.frameHeight + this._anim.spacing),
+          this._anim.frameWidth,
+          this._anim.frameHeight
+        );
+      }
+      this._animCounter += dt;
+    }
+  };
+  var Vector = class _Vector {
+    constructor(x = 0, y = 0) {
+      this.x = x;
+      this.y = y;
+    }
+    set(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+    copy(v) {
+      this.x = v.x;
+      this.y = v.y;
+      return this;
+    }
+    clone() {
+      return new _Vector(this.x, this.y);
+    }
+    add(v) {
+      this.x += v.x;
+      this.y += v.y;
+      return this;
+    }
+    sub(v) {
+      this.x -= v.x;
+      this.y -= v.y;
+      return this;
+    }
+    scale(s) {
+      this.x *= s;
+      this.y *= s;
+      return this;
+    }
+    lerp(v, s) {
+      return this.add(v.clone().sub(this).scale(s));
+    }
+    mag() {
+      return (this.x * this.x + this.y * this.y) ** 0.5;
+    }
+    unit() {
+      let d = this.mag();
+      if (d == 0) {
+        this.x = 0;
+        this.y = 0;
+      } else {
+        this.x /= d;
+        this.y /= d;
+      }
+      return this;
+    }
+    rot(rad) {
+      let s = Math.sin(rad), c = Math.cos(rad);
+      let x = c * this.x - s * this.y;
+      let y = s * this.x + c * this.y;
+      this.x = x;
+      this.y = y;
+      return this;
+    }
+    transformMat(m) {
+      let x = this.x, y = this.y, z = 0, w = 1;
+      let out = [
+        m[0] * x + m[4] * y + m[8] * z + m[12] * w,
+        m[1] * x + m[5] * y + m[9] * z + m[13] * w,
+        m[2] * x + m[6] * y + m[10] * z + m[14] * w,
+        m[3] * x + m[7] * y + m[11] * z + m[15] * w
+      ];
+      this.x = out[0] / out[3];
+      this.y = out[1] / out[3];
+      return this;
+    }
+  };
+  var Sprite = class {
+    constructor(t) {
+      this.texture = t;
+      this.coords = [
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        1
+      ];
+      this.color = [1, 1, 1, 1];
+    }
+    setRegion(x, y, w, h) {
+      this.coords[0] = x / this.texture.width;
+      this.coords[1] = y / this.texture.height;
+      this.coords[2] = (x + w) / this.texture.width;
+      this.coords[3] = y / this.texture.height;
+      this.coords[4] = (x + w) / this.texture.width;
+      this.coords[5] = (y + h) / this.texture.height;
+      this.coords[6] = x / this.texture.width;
+      this.coords[7] = (y + h) / this.texture.height;
+    }
+  };
+  var texture = /* @__PURE__ */ function() {
+    const createAndSetupTexture = (gl) => {
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      return tex;
+    };
+    class Texture {
+      static _ids = 0;
+      /**
+       * @type {WebGL2RenderingContext}
+       */
+      _gl;
+      constructor(gl, data, params) {
+        this._params = params;
+        this._id = Texture._ids++;
+        this._gl = gl;
+        this._data = data;
+        this._tex = createAndSetupTexture(this._gl);
+        this._gl.texImage2D(this._gl.TEXTURE_2D, 0, this._gl.RGBA, this._gl.RGBA, this._gl.UNSIGNED_BYTE, this._data);
+      }
+      get id() {
+        return this._id;
+      }
+      get width() {
+        return this._data.width;
+      }
+      get height() {
+        return this._data.height;
+      }
+      bind() {
+        this._gl.bindTexture(this._gl.TEXTURE_2D, this._tex);
+      }
+      unbind() {
+        this._gl.bindTexture(this._gl.TEXTURE_2D, null);
+      }
+      update() {
+      }
+      destroy() {
+        this._gl.deleteTexture(this._tex);
+      }
+    }
+    class AnimatedTexture extends Texture {
+      constructor(gl, data, params) {
+        super(gl, data, params);
+        this._counter = 0;
+        this._curFrame = 0;
+        this._first = true;
+        this._initFrames();
+      }
+      _initFrames() {
+        this._frames = [];
+        const anim = this._anim = this._params.anim;
+        const ctx = document.createElement("canvas").getContext("2d");
+        let w = ctx.canvas.width = anim.frameWidth, h = ctx.canvas.height = anim.frameHeight, margin = anim.margin, spacing = anim.spacing;
+        for (let frame of anim.frames) {
+          ctx.beginPath();
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(this._data, margin + frame.x * (w + spacing), margin + frame.y * (h + spacing), w, h, 0, 0, w, h);
+          const img = new Image();
+          img.src = ctx.canvas.toDataURL();
+          this._frames.push(img);
+        }
+      }
+      update(dt) {
+        if (this._first || this._counter >= this._anim.frames[this._curFrame].duration) {
+          this._first = false;
+          this._counter = 0;
+          if (++this._curFrame >= this._frames.length) {
+            this._curFrame = 0;
+          }
+          this._gl.bindTexture(this._gl.TEXTURE_2D, this._tex);
+          this._gl.texImage2D(this._gl.TEXTURE_2D, 0, this._gl.RGBA, this._gl.RGBA, this._gl.UNSIGNED_BYTE, this._frames[this._curFrame]);
+        }
+        this._counter += dt;
+      }
+    }
+    return {
+      createAndSetupTexture,
+      Texture,
+      AnimatedTexture
+    };
+  }();
+  var OrthogonalMapRenderer = class extends Component {
+    constructor(params) {
+      super();
+      this._params = params;
+      this._textures = {
+        tilesets: [],
+        animatedTiles: []
+      };
+      this._batches = [];
+    }
+    start() {
+      const tilemap2 = this._params.tilemap;
+      const tilesets = tilemap2.getTilesets();
+      for (let i = 0; i < tilesets.length; ++i) {
+        const tileset = tilesets[i];
+        let tilesetTex = new texture.Texture(this._entity._scene.renderer._gl, this._params.tilesets[tileset.name], {});
+        this._textures.tilesets.push({
+          name: tileset.name,
+          texture: tilesetTex
+        });
+        for (let i2 = 0; i2 < tileset.tilecount; ++i2) {
+          const tile = tileset.getTileByIndex(i2);
+          if (tile.animation) {
+            let animtedTileTex = new texture.AnimatedTexture(this._entity._scene.renderer._gl, this._params.tilesets[tileset.name], {
+              anim: {
+                frameWidth: tileset.tilewidth,
+                frameHeight: tileset.tileheight,
+                margin: tileset.margin,
+                spacing: tileset.spacing,
+                frames: tile.animation.map((e) => {
+                  let frameTile = tileset.getTileByIndex(e.tileid);
+                  return { x: frameTile.x, y: frameTile.y, duration: e.duration / 1e3 };
+                })
+              }
+            });
+            this._textures.animatedTiles.push({
+              tileId: tile.id,
+              texture: animtedTileTex
+            });
+          }
+        }
+      }
+      const layers = tilemap2.getLayers();
+      for (let i = 0; i < layers.length; ++i) {
+        const layer = layers[i];
+        let batch;
+        switch (layer.type) {
+          case "tilelayer": {
+            batch = this._entity._scene.renderer._createBatch(layer.zIndex, true, this._params.camera, true);
+            for (let j = 0; j < layer.height; ++j) {
+              for (let k = 0; k < layer.width; ++k) {
+                const tile = layer.getTile(k, j);
+                if (tile) {
+                  let sprite;
+                  if (tile.animation) {
+                    sprite = new Sprite(this._textures.animatedTiles.find((e) => e.tileId == tile.id).texture);
+                  } else {
+                    sprite = new Sprite(this._textures.tilesets.find((e) => e.name == tile.tileset.name).texture);
+                    sprite.setRegion(
+                      tile.tileset.margin + tile.x * (tilemap2.tilewidth + tile.tileset.spacing),
+                      tile.tileset.margin + tile.y * (tilemap2.tileheight + tile.tileset.spacing),
+                      tilemap2.tilewidth,
+                      tilemap2.tileheight
+                    );
+                  }
+                  const renderObject = {
+                    sprite,
+                    zIndex: i,
+                    fixed: true,
+                    x: (k + layer.x + 0.5) * tilemap2.tilewidth,
+                    y: (j + layer.y + 0.5) * tilemap2.tileheight,
+                    sx: tilemap2.tilewidth,
+                    sy: tilemap2.tileheight,
+                    angle: 0
+                  };
+                  batch.spriteBatch.add(renderObject);
+                }
+              }
+            }
+            break;
+          }
+          case "objectgroup": {
+            let objects = layer.getObjects();
+            batch = this._entity._scene.renderer._createBatch(layer.zIndex, true, this._params.camera, true);
+            for (let o of objects) {
+              if (o.gid) {
+                let tile = tilemap2.getTileById(o.gid);
+                if (!tile) {
+                  continue;
+                }
+                let sprite;
+                if (tile.animation) {
+                  sprite = new Sprite(this._textures.animatedTiles.find((e) => e.tileId == tile.id).texture);
+                } else {
+                  sprite = new Sprite(this._textures.tilesets.find((e) => e.name == tile.tileset.name).texture);
+                  sprite.setRegion(
+                    tile.tileset.margin + tile.x * (tilemap2.tilewidth + tile.tileset.spacing),
+                    tile.tileset.margin + tile.y * (tilemap2.tileheight + tile.tileset.spacing),
+                    tilemap2.tilewidth,
+                    tilemap2.tileheight
+                  );
+                }
+                let angle = lancelot.math.math.degToRad(o.rotation);
+                let offset = new Vector(o.width / 2, -o.height / 2).rot(angle);
+                const renderObject = {
+                  sprite,
+                  zIndex: i,
+                  fixed: true,
+                  x: o.x + offset.x,
+                  y: o.y + offset.y,
+                  sx: o.width,
+                  sy: o.height,
+                  angle
+                };
+                batch.spriteBatch.add(renderObject);
+              }
+            }
+            break;
+          }
+        }
+        this._batches.push({ batch, layerName: layer.name });
+      }
+    }
+    update(dt) {
+      for (let tex of this._textures.animatedTiles) {
+        tex.texture.update(dt);
+      }
+      let layers = this._params.tilemap.getLayers();
+      for (let layer of layers) {
+        let batch = this._batches.find((e) => e.layerName == layer.name);
+        batch.batch.ambientColor[3] = layer.opacity;
+      }
+    }
+    destroy() {
+      for (let batch of this._batches) {
+        this._entity._scene.renderer._removeBatch(batch.batch);
+      }
+      for (let tex of this._textures.tilesets) {
+        tex.destroy();
+      }
+      for (let tex of this._textures.animatedTiles) {
+        tex.destroy();
+      }
+    }
+  };
+  var OrthogonalMap = class extends Component {
+    constructor(tilemap2) {
+      super();
+      this._tilemap = tilemap2;
+    }
+    get tilemap() {
+      return this._tilemap;
+    }
+    start() {
+      for (let layer of this._tilemap.getLayers()) {
+        if (layer.type != "objectgroup") {
+          continue;
+        }
+        let objects = layer.getObjects();
+        for (let o of objects) {
+          this.broadcast({
+            topic: "tilemapObject",
+            object: o,
+            layer
+          });
+        }
+      }
+    }
+  };
+  var Shader = class {
+    /**
+     * @type {WebGL2RenderingContext}
+     */
+    _gl;
+    constructor(gl, vertexSource, fragmentSource, uniforms) {
+      this._gl = gl;
+      this._vertexSource = vertexSource;
+      this._fragmentSource = fragmentSource;
+      this._uniforms = uniforms.map((e) => ({ name: e[0], type: e[1] }));
+    }
+    start() {
+      this._program = this._gl.createProgram();
+      this._vertexShader = this._createShader(this._gl.VERTEX_SHADER, this._vertexSource);
+      this._fragmentShader = this._createShader(this._gl.FRAGMENT_SHADER, this._fragmentSource);
+      this._gl.attachShader(this._program, this._vertexShader);
+      this._gl.attachShader(this._program, this._fragmentShader);
+      this._gl.linkProgram(this._program);
+      this._gl.useProgram(this._program);
+      for (let uniform of this._uniforms) {
+        uniform.location = this._gl.getUniformLocation(this._program, "u_" + uniform.name);
+      }
+    }
+    destroy() {
+      this._gl.deleteShader(this._vertexShader);
+      this._gl.deleteShader(this._fragmentShader);
+      this._gl.deleteProgram(this._program);
+    }
+    bind() {
+      this._gl.useProgram(this._program);
+    }
+    unbind() {
+      this._gl.useProgram(null);
+    }
+    supplyUniform(uniformName, value2) {
+      const uniform = this._uniforms.find((e) => e.name == uniformName);
+      if (uniform) {
+        switch (uniform.type) {
+          case "mat3":
+            this._gl.uniformMatrix3fv(uniform.location, false, value2);
+            break;
+          case "mat4":
+            this._gl.uniformMatrix4fv(uniform.location, false, value2);
+            break;
+          case "float":
+            this._gl.uniform1f(uniform.location, value2);
+            break;
+          case "float[]":
+            this._gl.uniform1fv(uniform.location, value2);
+            break;
+          case "vec2":
+            this._gl.uniform2fv(uniform.location, value2);
+            break;
+          case "vec3":
+            this._gl.uniform3fv(uniform.location, value2);
+            break;
+          case "vec4":
+            this._gl.uniform4fv(uniform.location, value2);
+            break;
+        }
+      }
+    }
+    getUniform(uniformName) {
+      return this._uniforms.find((e) => e.name == uniformName);
+    }
+    _createShader(type, src) {
+      const shader = this._gl.createShader(type);
+      this._gl.shaderSource(shader, src);
+      this._gl.compileShader(shader);
+      if (this._gl.getShaderParameter(shader, this._gl.COMPILE_STATUS) == 0) {
+        console.log(this._gl.getShaderInfoLog(shader));
+      }
+      return shader;
+    }
+  };
+  var debugDraw = /* @__PURE__ */ function() {
+    const lineVertexSource = `#version 300 es
     
 layout (location=0) in vec2 a_position;
 layout (location=1) in vec4 a_color;
@@ -12,7 +633,8 @@ void main() {
 
     gl_Position = u_projectionViewM * vec4(a_position, 0, 1);
 }
-`,e=`#version 300 es
+`;
+    const lineFragmentSource = `#version 300 es
 precision mediump float;
 
 in vec4 v_color;
@@ -22,7 +644,232 @@ out vec4 outColor;
 void main() {
     outColor = v_color;
 }
-`;class i{static VSIZE=6;_gl;constructor(n){this._gl=n,this._lines=[],this._drawCalls=[],this._shader=new Bt(this._gl,t,e,[["projectionViewM","mat4"]])}start(){this._shader.start(),this._vao=this._gl.createVertexArray(),this._gl.bindVertexArray(this._vao),this._vbo=this._gl.createBuffer(),this._gl.bindBuffer(this._gl.ARRAY_BUFFER,this._vbo),this._gl.vertexAttribPointer(0,2,this._gl.FLOAT,!1,i.VSIZE*4,0*4),this._gl.vertexAttribPointer(1,4,this._gl.FLOAT,!1,i.VSIZE*4,2*4),this._gl.bindVertexArray(null)}destroy(){this._gl.deleteBuffer(this._vbo),this._gl.deleteVertexArray(this._vao),this._shader.destroy(),this._textRenderer.destroy()}addLine(n,r,o,a,h,c){this._lines.push({x1:n,y1:r,x2:o,y2:a,color:h,camera:c})}addRect(n,r,o,a,h,c){this._lines.push({x1:n,y1:r,x2:n+o,y2:r,color:h,camera:c}),this._lines.push({x1:n+o,y1:r,x2:n+o,y2:r+a,color:h,camera:c}),this._lines.push({x1:n+o,y1:r+a,x2:n,y2:r+a,color:h,camera:c}),this._lines.push({x1:n,y1:r+a,x2:n,y2:r,color:h,camera:c})}beginFrame(){this.initBuffer(),this._lines=[]}initBuffer(){let n=[];this._drawCalls=[],this._lines.sort((r,o)=>r.camera.id-o.camera.id);for(let r of this._lines){let{x1:o,y1:a,x2:h,y2:c,color:l,camera:u}=r;if(this._drawCalls.length==0||this._drawCalls[this._drawCalls.length-1].camera.id!=u.id){let _={offset:n.length/i.VSIZE,count:2,camera:u};this._drawCalls.push(_)}else this._drawCalls[this._drawCalls.length-1].count+=2;n.push(o,a,...l),n.push(h,c,...l)}this._gl.bindBuffer(this._gl.ARRAY_BUFFER,this._vbo),this._gl.bufferData(this._gl.ARRAY_BUFFER,new Float32Array(n),this._gl.STATIC_DRAW)}draw(){this._shader.bind(),this._gl.bindVertexArray(this._vao),this._gl.enableVertexAttribArray(0),this._gl.enableVertexAttribArray(1);for(let n of this._drawCalls)n.camera.begin(this._gl),this._shader.supplyUniform("projectionViewM",n.camera.projectionView),this._gl.drawArrays(this._gl.LINES,n.offset,n.count);this._gl.bindVertexArray(null)}}return{DebugDraw:i}}(),Ot=function(){let t=(i,s,n,r)=>{let o,a,h,c;switch(r){case"stretch":{h=innerWidth,c=innerHeight,o=s,a=n;break}case"fit":{let l=s/n;l>innerWidth/innerHeight?(h=innerWidth,c=innerWidth/l):(h=innerHeight*l,c=innerHeight),o=s,a=n;break}case"fill":{h=innerWidth,c=innerHeight;let l=s/n;if(l>innerWidth/innerHeight){let u=h/l;o=s,a=n}else{let u=c*l;o=s,a=n}break}}i.width=o,i.height=a,i.style.width=h+"px",i.style.height=c+"px",i.style.marginTop=(innerHeight-c)/2+"px",i.style.marginLeft=(innerWidth-h)/2+"px"};class e{constructor(){this._width=300,this._height=150,this._domElement=document.createElement("canvas"),this._context=this._domElement.getContext("webgl2")}get domElement(){return this._domElement}get context(){return this._context}start(){addEventListener("resize",()=>this._onResize()),this._onResize()}setViewportMode(s){this._viewportMode=s}setSize(s,n){this._width=s,this._height=n}_onResize(){t(this._domElement,this._width,this._height,this._viewportMode)}}return{resizeCanvas:t,GLCanvas:e}}(),pe=function(){class t{_gl;constructor(i){this._gl=i,this._texts=[]}start(){this._textCanvasCtx=document.createElement("canvas").getContext("2d"),this._textCanvasCtx.canvas.style.position="absolute",this._textCanvasCtx.canvas.style.zIndex=10,this._textCanvasCtx.canvas.style.backgroundColor="transparent",this._textCanvasCtx.canvas.style.left="0",this._textCanvasCtx.canvas.style.top="0",addEventListener("resize",()=>this._onResize()),this._onResize(),this._gl.canvas.parentElement.appendChild(this._textCanvasCtx.canvas)}_onResize(){Ot.resizeCanvas(this._textCanvasCtx.canvas,this._gl.canvas.width,this._gl.canvas.height,d.Lancelot._get()._config.viewportMode)}destroy(){}add(i,s,n,r,o={}){this._texts.push({text:i,x:s,y:n,color:o.color||"black",fontSize:o.fontSize||"12px",align:o.align||"left",fontFamily:o.fontFamily||"system-ui",camera:r,alive:!0})}draw(){this._textCanvasCtx.beginPath(),this._textCanvasCtx.clearRect(0,0,this._textCanvasCtx.canvas.width,this._textCanvasCtx.canvas.height),this._texts=this._texts.filter(i=>i.alive);for(let i of this._texts){i.alive=!1;let s=new k(i.x,i.y).transformMat(i.camera.projectionView),n=i.camera.viewport[0]+(s.x*.5+.5)*i.camera.viewport[2],r=i.camera.viewport[1]+(s.y*-.5+.5)*i.camera.viewport[3];this._textCanvasCtx.fillStyle=i.color,this._textCanvasCtx.font=i.fontSize+" "+i.fontFamily,this._textCanvasCtx.textAlign=i.align,this._textCanvasCtx.fillText(i.text,n,r)}}}return{TextRenderer:t}}(),Pt=function(){let t=`#version 300 es
+`;
+    class DebugDraw {
+      static VSIZE = 6;
+      /**
+       * @type {WebGL2RenderingContext}
+       */
+      _gl;
+      constructor(gl) {
+        this._gl = gl;
+        this._lines = [];
+        this._drawCalls = [];
+        this._shader = new Shader(this._gl, lineVertexSource, lineFragmentSource, [
+          ["projectionViewM", "mat4"]
+        ]);
+      }
+      start() {
+        this._shader.start();
+        this._vao = this._gl.createVertexArray();
+        this._gl.bindVertexArray(this._vao);
+        this._vbo = this._gl.createBuffer();
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this._vbo);
+        this._gl.vertexAttribPointer(0, 2, this._gl.FLOAT, false, DebugDraw.VSIZE * 4, 0 * 4);
+        this._gl.vertexAttribPointer(1, 4, this._gl.FLOAT, false, DebugDraw.VSIZE * 4, 2 * 4);
+        this._gl.bindVertexArray(null);
+      }
+      destroy() {
+        this._gl.deleteBuffer(this._vbo);
+        this._gl.deleteVertexArray(this._vao);
+        this._shader.destroy();
+        this._textRenderer.destroy();
+      }
+      addLine(x1, y1, x2, y2, color, camera2) {
+        this._lines.push({ x1, y1, x2, y2, color, camera: camera2 });
+      }
+      addRect(x, y, w, h, color, camera2) {
+        this._lines.push({ x1: x, y1: y, x2: x + w, y2: y, color, camera: camera2 });
+        this._lines.push({ x1: x + w, y1: y, x2: x + w, y2: y + h, color, camera: camera2 });
+        this._lines.push({ x1: x + w, y1: y + h, x2: x, y2: y + h, color, camera: camera2 });
+        this._lines.push({ x1: x, y1: y + h, x2: x, y2: y, color, camera: camera2 });
+      }
+      beginFrame() {
+        this.initBuffer();
+        this._lines = [];
+      }
+      initBuffer() {
+        const vertices = [];
+        this._drawCalls = [];
+        this._lines.sort((a, b) => {
+          return a.camera.id - b.camera.id;
+        });
+        for (let line of this._lines) {
+          const { x1, y1, x2, y2, color, camera: camera2 } = line;
+          if (this._drawCalls.length == 0 || this._drawCalls[this._drawCalls.length - 1].camera.id != camera2.id) {
+            const c = {
+              offset: vertices.length / DebugDraw.VSIZE,
+              count: 2,
+              camera: camera2
+            };
+            this._drawCalls.push(c);
+          } else {
+            this._drawCalls[this._drawCalls.length - 1].count += 2;
+          }
+          vertices.push(x1, y1, ...color);
+          vertices.push(x2, y2, ...color);
+        }
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this._vbo);
+        this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(vertices), this._gl.STATIC_DRAW);
+      }
+      draw() {
+        this._shader.bind();
+        this._gl.bindVertexArray(this._vao);
+        this._gl.enableVertexAttribArray(0);
+        this._gl.enableVertexAttribArray(1);
+        for (let c of this._drawCalls) {
+          c.camera.begin(this._gl);
+          this._shader.supplyUniform("projectionViewM", c.camera.projectionView);
+          this._gl.drawArrays(this._gl.LINES, c.offset, c.count);
+        }
+        this._gl.bindVertexArray(null);
+      }
+    }
+    return {
+      DebugDraw
+    };
+  }();
+  var canvas = /* @__PURE__ */ function() {
+    const resizeCanvas = (canvas2, width, height, viewportMode) => {
+      let vw, vh, w, h;
+      switch (viewportMode) {
+        case "stretch": {
+          w = innerWidth;
+          h = innerHeight;
+          vw = width;
+          vh = height;
+          break;
+        }
+        case "fit": {
+          const aspect = width / height;
+          if (aspect > innerWidth / innerHeight) {
+            w = innerWidth;
+            h = innerWidth / aspect;
+          } else {
+            w = innerHeight * aspect;
+            h = innerHeight;
+          }
+          vw = width;
+          vh = height;
+          break;
+        }
+        case "fill": {
+          w = innerWidth;
+          h = innerHeight;
+          const aspect = width / height;
+          if (aspect > innerWidth / innerHeight) {
+            const temp = w / aspect;
+            vw = width;
+            vh = height;
+          } else {
+            const temp = h * aspect;
+            vw = width;
+            vh = height;
+          }
+          break;
+        }
+      }
+      canvas2.width = vw;
+      canvas2.height = vh;
+      canvas2.style.width = w + "px";
+      canvas2.style.height = h + "px";
+      canvas2.style.marginTop = (innerHeight - h) / 2 + "px";
+      canvas2.style.marginLeft = (innerWidth - w) / 2 + "px";
+    };
+    class GLCanvas {
+      constructor() {
+        this._width = 300;
+        this._height = 150;
+        this._domElement = document.createElement("canvas");
+        this._context = this._domElement.getContext("webgl2");
+      }
+      get domElement() {
+        return this._domElement;
+      }
+      get context() {
+        return this._context;
+      }
+      start() {
+        addEventListener("resize", () => this._onResize());
+        this._onResize();
+      }
+      setViewportMode(mode) {
+        this._viewportMode = mode;
+      }
+      setSize(w, h) {
+        this._width = w;
+        this._height = h;
+      }
+      _onResize() {
+        resizeCanvas(this._domElement, this._width, this._height, this._viewportMode);
+      }
+    }
+    return {
+      resizeCanvas,
+      GLCanvas
+    };
+  }();
+  var textRenderer = /* @__PURE__ */ function() {
+    class TextRenderer {
+      /**
+       * @type {WebGL2RenderingContext}
+       */
+      _gl;
+      constructor(gl) {
+        this._gl = gl;
+        this._texts = [];
+      }
+      start() {
+        this._textCanvasCtx = document.createElement("canvas").getContext("2d");
+        this._textCanvasCtx.canvas.style.position = "absolute";
+        this._textCanvasCtx.canvas.style.zIndex = 10;
+        this._textCanvasCtx.canvas.style.backgroundColor = "transparent";
+        this._textCanvasCtx.canvas.style.left = "0";
+        this._textCanvasCtx.canvas.style.top = "0";
+        addEventListener("resize", () => this._onResize());
+        this._onResize();
+        this._gl.canvas.parentElement.appendChild(this._textCanvasCtx.canvas);
+      }
+      _onResize() {
+        canvas.resizeCanvas(this._textCanvasCtx.canvas, this._gl.canvas.width, this._gl.canvas.height, lancelot.Lancelot._get()._config.viewportMode);
+      }
+      destroy() {
+      }
+      add(text, x, y, camera2, params = {}) {
+        this._texts.push({
+          text,
+          x,
+          y,
+          color: params.color || "black",
+          fontSize: params.fontSize || "12px",
+          align: params.align || "left",
+          fontFamily: params.fontFamily || "system-ui",
+          camera: camera2,
+          alive: true
+        });
+      }
+      draw() {
+        this._textCanvasCtx.beginPath();
+        this._textCanvasCtx.clearRect(0, 0, this._textCanvasCtx.canvas.width, this._textCanvasCtx.canvas.height);
+        this._texts = this._texts.filter((e) => e.alive);
+        for (let text of this._texts) {
+          text.alive = false;
+          let clipspace = new Vector(text.x, text.y).transformMat(text.camera.projectionView);
+          let pixelX = text.camera.viewport[0] + (clipspace.x * 0.5 + 0.5) * text.camera.viewport[2];
+          let pixelY = text.camera.viewport[1] + (clipspace.y * -0.5 + 0.5) * text.camera.viewport[3];
+          this._textCanvasCtx.fillStyle = text.color;
+          this._textCanvasCtx.font = text.fontSize + " " + text.fontFamily;
+          this._textCanvasCtx.textAlign = text.align;
+          this._textCanvasCtx.fillText(text.text, pixelX, pixelY);
+        }
+      }
+    }
+    return {
+      TextRenderer
+    };
+  }();
+  var renderer = /* @__PURE__ */ function() {
+    const spriteVertexSource = `#version 300 es
      
 layout (location=0) in vec2 a_position;
 layout (location=1) in vec2 a_texcoord;
@@ -39,7 +886,8 @@ void main() {
 
     gl_Position = u_projectionViewM * vec4(a_position, 0, 1);
 }
-`,e=`#version 300 es
+`;
+    const spriteFragmentSource = `#version 300 es
 precision mediump float;
 
 in vec2 v_texcoord;
@@ -53,4 +901,5362 @@ out vec4 outColor;
 void main() {
     outColor = u_ambientColor * v_color * texture(u_texture, v_texcoord);
 }
-`;class i{static MAX_SPRITES=1e4;static VSIZE=8;static vertices=[-.5,-.5,.5,-.5,.5,.5,-.5,.5];_gl;constructor(r){this._gl=r,this._sprites=[],this._drawCalls=[]}start(){this._vao=this._gl.createVertexArray(),this._gl.bindVertexArray(this._vao),this._vbo=this._gl.createBuffer(),this._gl.bindBuffer(this._gl.ARRAY_BUFFER,this._vbo),this._ebo=this._gl.createBuffer(),this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER,this._ebo);let r=[];for(let o=0;o<i.MAX_SPRITES;++o)r.push(o*4,o*4+1,o*4+2,o*4,o*4+2,o*4+3);this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(r),this._gl.STATIC_DRAW),this._gl.vertexAttribPointer(0,2,this._gl.FLOAT,!1,i.VSIZE*4,0*4),this._gl.vertexAttribPointer(1,2,this._gl.FLOAT,!1,i.VSIZE*4,2*4),this._gl.vertexAttribPointer(2,4,this._gl.FLOAT,!1,i.VSIZE*4,4*4),this._gl.bindVertexArray(null)}destroy(){this._gl.deleteBuffer(this._vao),this._gl.deleteBuffer(this._ebo),this._gl.deleteVertexArray(this._vao)}isFull(){return this._sprites.length==i.MAX_SPRITES}add(r){this._sprites.push(r)}remove(r){let o=this._sprites.indexOf(r);return o!=-1?(this._sprites.splice(o,1),!0):!1}initBuffer(){let r=[];this._drawCalls=[],this._sprites.sort((o,a)=>o.sprite.texture.id-a.sprite.texture.id);for(let o of this._sprites){let{sprite:a,x:h,y:c,sx:l,sy:u,angle:_}=o;if(this._drawCalls.length==0||this._drawCalls[this._drawCalls.length-1].texture.id!=a.texture.id){let g={offset:r.length/i.VSIZE,count:4,texture:a.texture};this._drawCalls.push(g)}else this._drawCalls[this._drawCalls.length-1].count+=4;for(let g=0;g<4;++g){let b=new k(i.vertices[g*2]*l,i.vertices[g*2+1]*u);b.rot(_),b.x+=h,b.y+=c,r.push(b.x,b.y,a.coords[g*2],a.coords[g*2+1],...a.color)}}this._gl.bindBuffer(this._gl.ARRAY_BUFFER,this._vbo),this._gl.bufferData(this._gl.ARRAY_BUFFER,new Float32Array(r),this._gl.STATIC_DRAW)}draw(){this._gl.bindVertexArray(this._vao),this._gl.enableVertexAttribArray(0),this._gl.enableVertexAttribArray(1),this._gl.enableVertexAttribArray(2);for(let r of this._drawCalls)r.texture.bind(),this._gl.drawElements(this._gl.TRIANGLES,r.count/4*6,this._gl.UNSIGNED_SHORT,r.offset/4*6*2);this._gl.disableVertexAttribArray(2),this._gl.bindVertexArray(null)}}class s{_gl;constructor(r){this._gl=r,this._batches=[],this._spriteShader=new Bt(this._gl,t,e,[["projectionViewM","mat4"],["ambientColor","vec4"]]),this._debugDraw=new ue.DebugDraw(this._gl),this._textRenderer=new pe.TextRenderer(this._gl)}get debugDraw(){return this._debugDraw}get textRenderer(){return this._textRenderer}start(){this._spriteShader.start(),this._debugDraw.start(),this._textRenderer.start()}destroy(){for(let r of this._batches)this._removeBatch(r);this._spriteShader.destroy()}add(r){let o=this._batches.find(a=>!a.locked&&a.zIndex==r.zIndex&&a.fixed==r.fixed&&a.camera==r.camera&&!a.spriteBatch.isFull());o||(o=this._createBatch(r.zIndex,r.fixed,r.camera,!1)),o.spriteBatch.add(r),o.needsUpdate=!0}remove(r){for(let o of this._batches)o.spriteBatch.remove(r)&&(o.needsUpdate=!0)}render(){this._spriteShader.bind(),this._gl.viewport(0,0,this._gl.canvas.width,this._gl.canvas.height),this._gl.clearColor(0,0,0,1),this._gl.clear(this._gl.COLOR_BUFFER_BIT),this._batches.sort((r,o)=>r.zIndex-o.zIndex);for(let r of this._batches)r.needsUpdate&&(r.needsUpdate=!r.fixed,r.spriteBatch.initBuffer()),r.camera.begin(this._gl),this._spriteShader.supplyUniform("projectionViewM",r.camera.projectionView),this._spriteShader.supplyUniform("ambientColor",r.ambientColor),r.spriteBatch.draw();this._debugDraw.beginFrame(),this._debugDraw.draw(),this._textRenderer.draw()}_createBatch(r,o,a,h){let c=new i(this._gl);c.start();let l={zIndex:r,fixed:o,camera:a,locked:h,spriteBatch:c,needsUpdate:!0,ambientColor:[1,1,1,1]};return this._batches.push(l),l}_removeBatch(r){let o=this._batches.indexOf(r);o!=-1&&(this._batches.splice(o,1),r.spriteBatch.destroy())}}return{Renderer:s,SpriteBatch:i}}(),$=function(){let t=s=>new Promise((n,r)=>{let o=new Image;o.src=s,o.onload=()=>{n(o)},o.onerror=()=>{r()}}),e=async s=>await(await fetch(s)).json();class i{static _images=new Map;static _jsons=new Map;static _textures=new Map;static _shaders=new Map;static getImage(n){return this._images.get(n)}static addImage(n,r){this._images.set(n,r)}static getJson(n){return this._jsons.get(n)}static addJson(n,r){this._jsons.set(n,r)}static getTexture(n){return this._textures.get(n)}static createTexture(n,r,o,a){let h=d.Lancelot._get()._canvas.context,c;return a?c=new G.AnimatedTexture(h,r,o):c=new G.Texture(h,r,o),this._textures.set(n,c),c}static getShader(n){return this._shaders.get(n)}static createShader(n,r,o){let a=d.Lancelot._get()._canvas.context;this._shaders.set(n,Pt.createCanvasShader(a,r,o))}}return{loadImage:t,loadJson:e,AssetsManager:i}}(),fe=function(){class t{constructor(a,h,c,l,u){this.x=a,this.y=h,this.tileset=c,this.animation=l,this.properties=u}get id(){return this.tileset.name+"["+this.x+";"+this.y+"]"}getProperty(a){let h=this.properties.find(c=>c.name==a);return h?h.value:null}}class e{static _cache=new Map;static async getOrLoadFromJson(a){if(this._cache.has(a))return this._cache.get(a);let h=await $.loadJson(a),c=new e(h);return this._cache.set(a,c),c}constructor(a,h){this._params=a,this._image=h}get name(){return this._params.name}get tilecount(){return this._params.tilecount}get tilewidth(){return this._params.tilewidth}get tileheight(){return this._params.tileheight}get margin(){return this._params.margin}get spacing(){return this._params.spacing}getTileByIndex(a){if(a>=this._params.tilecount||a<0)return null;let h=this._params.tiles.find(c=>c.id==a)||{};return new t(a%this._params.columns,~~(a/this._params.columns),this,h.animation||null,h.properties||[])}}class i{constructor(a){this._tilemap=null,this._params=a,this._opacity=a.opacity}get name(){return this._params.name}get width(){return this._params.width}get height(){return this._params.height}get x(){return this._params.x}get y(){return this._params.y}get type(){return this._params.type}get zIndex(){return this._tilemap.getLayers().indexOf(this)}get opacity(){return this._opacity}set opacity(a){this._opacity=a}}class s extends i{getTile(a,h){let c=this._params.data[h*this._params.width+a];return c-1==-1?null:this._tilemap.getTileById(c)}}class n extends i{getObjects(){return this._params.objects}}class r{static async loadFromJson(a,h){let c=await $.loadJson(a),l=new r(c.width,c.height,c.tilewidth,c.tileheight);for(let u of c.layers)switch(u.type){case"tilelayer":l.addLayer(new s(u));break;case"objectgroup":l.addLayer(new n(u));break}for(let u of c.tilesets){let _;if(u.source){let g=u.source.split(/(\/|\\\/)/),b=g[g.length-1].split(".tsj")[0];_=await e.getOrLoadFromJson(h[b])}else _=new e(u);l.addTileset(_,u.firstgid)}return l}constructor(a,h,c,l){this._width=a,this._height=h,this._tilewidth=c,this._tileheight=l,this._tilesets=[],this._layers=[]}get width(){return this._width}get height(){return this._height}get tilewidth(){return this._tilewidth}get tileheight(){return this._tileheight}addLayer(a){a._tilemap=this,this._layers.push(a)}addTileset(a,h){this._tilesets.push({tileset:a,firstgid:h})}getTilesets(){return this._tilesets.map(a=>a.tileset)}getLayers(){return this._layers}getLayerByName(a){return this._layers.find(h=>h.name==a)||null}getTileById(a){let h=this._tilesets;for(let c of h){let l=c.tileset.getTileByIndex(a-c.firstgid);if(l)return l}return null}}return{Tileset:e,Layer:i,TileLayer:s,ObjectLayer:n,Tilemap:r}}(),Lt={};B(Lt,{Store:()=>_e,assets:()=>$});var _e=class{static _store={};static get(t){return this._store[t]}static set(t,e){this._store[t]=e}},It={};B(It,{Matrix:()=>O,Vector:()=>k,math:()=>ge});var ge=function(){return{clamp(t,e,i){return Math.min(Math.max(t,e),i)},sat(t){return Math.min(Math.max(t,0),1)},lerp(t,e,i){return t+(e-t)*i},map(t,e,i,s,n){return t+(e-t)*(n-i)/(s-i)},degToRad(t){return t/180*Math.PI},radToDeg(t){return t/Math.PI*180},randInt(t,e){return~~(Math.random()*(e-t+1)+t)}}}(),O=class{static create(){return[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]}static identity(t){return t[0]=1,t[1]=0,t[2]=0,t[3]=0,t[4]=0,t[5]=1,t[6]=0,t[7]=0,t[8]=0,t[9]=0,t[10]=1,t[11]=0,t[12]=0,t[13]=0,t[14]=0,t[15]=1,t}static ortho(t,e,i,s,n,r,o){let a=1/(e-i),h=1/(s-n),c=1/(r-o);return t[0]=-2*a,t[1]=0,t[2]=0,t[3]=0,t[4]=0,t[5]=-2*h,t[6]=0,t[7]=0,t[8]=0,t[9]=0,t[10]=2*c,t[11]=0,t[12]=(e+i)*a,t[13]=(n+s)*h,t[14]=(o+r)*c,t[15]=1,t}static multiply(t,e,i){let s=e[0],n=e[1],r=e[2],o=e[3],a=e[4],h=e[5],c=e[6],l=e[7],u=e[8],_=e[9],g=e[10],b=e[11],N=e[12],F=e[13],U=e[14],V=e[15],y=i[0],v=i[1],w=i[2],x=i[3];return t[0]=y*s+v*a+w*u+x*N,t[1]=y*n+v*h+w*_+x*F,t[2]=y*r+v*c+w*g+x*U,t[3]=y*o+v*l+w*b+x*V,y=i[4],v=i[5],w=i[6],x=i[7],t[4]=y*s+v*a+w*u+x*N,t[5]=y*n+v*h+w*_+x*F,t[6]=y*r+v*c+w*g+x*U,t[7]=y*o+v*l+w*b+x*V,y=i[8],v=i[9],w=i[10],x=i[11],t[8]=y*s+v*a+w*u+x*N,t[9]=y*n+v*h+w*_+x*F,t[10]=y*r+v*c+w*g+x*U,t[11]=y*o+v*l+w*b+x*V,y=i[12],v=i[13],w=i[14],x=i[15],t[12]=y*s+v*a+w*u+x*N,t[13]=y*n+v*h+w*_+x*F,t[14]=y*r+v*c+w*g+x*U,t[15]=y*o+v*l+w*b+x*V,t}},Dt={};B(Dt,{KeyListener:()=>st});var st=class Mt{static _instance=null;static _get(){return this._instance==null&&(this._instance=new Mt),this._instance}constructor(){this._prevKeysDown=new Set,this._keysDown=new Set,this._keysPressed=new Set,this._keysReleased=new Set}start(){addEventListener("keydown",e=>this._onKeyDown(e.code)),addEventListener("keyup",e=>this._onKeyUp(e.code))}static isDown(e){return this._get()._keysDown.has(e)}static isPressed(e){return this._get()._keysPressed.has(e)}static isReleased(e){return this._get()._keysReleased.has(e)}update(){this._keysPressed.clear(),this._keysReleased.clear(),this._keysDown.forEach(e=>{this._prevKeysDown.has(e)||this._keysPressed.add(e)}),this._prevKeysDown.forEach(e=>{this._keysDown.has(e)||this._keysReleased.add(e)}),this._prevKeysDown=new Set(this._keysDown)}_onKeyDown(e){this._keysDown.add(e)}_onKeyUp(e){this._keysDown.delete(e)}},Nt={};B(Nt,{Collider:()=>ye,shape:()=>me});var me=function(){class t{constructor(){this.x=0,this.y=0}setPosition(s,n){this.x=s,this.y=n}}class e extends t{constructor(s,n){super(),this.width=s,this.height=n}getLeft(){return this.x-this.width/2}getRight(){return this.x+this.width/2}getTop(){return this.y-this.height/2}getBottom(){return this.y+this.height/2}intersects(s){if(s instanceof e)return Math.abs(this.x-s.x)<(this.width+s.width)/2&&Math.abs(this.y-s.y)<(this.height+s.height)/2}clone(){let s=new e(this.width,this.height);return s.setPosition(this.x,this.y),s}}return{Shape:t,Rect:e}}(),ye=class extends S{constructor(t){super(),this._position=new k,this._offset=t.offset,this._shape=t.shape}get shape(){return this._shape}getPosition(){return this._position.clone()}setPosition(t){this._position.copy(t),this._shape.setPosition(t.x+this._offset.x,t.y+this._offset.y)}},Ft={};B(Ft,{ChannelClientController:()=>ui,ChannelServerController:()=>_i});var Ut=class{channel;ready;onConnect;onDisconnect;onMessage;constructor(t){this.channel=t,this.ready=!1}init(){this.channel.onmessage=t=>{this.onMessage&&this.onMessage(t.data)},this.channel.onopen=()=>{this.handleChannelStateChange()},this.channel.onclose=()=>{this.handleChannelStateChange()}}send(t){this.channel.send(t)}handleChannelStateChange(){this.channel.readyState=="open"?(console.log("Client connected"),this.ready=!0,this.onConnect&&this.onConnect()):(console.log("Client disconnected"),this.ready=!1,this.onDisconnect&&this.onDisconnect())}},ve=class{serverRoom;signalServer;remoteConnection;channel;onConnect;onDisconnect;onMessage;constructor(t){this.signalServer=t,this.channel=new Ut,this.serverRoom=null,t.onMessage=(e,i)=>{switch(i.type){case"offer":this.handleOffer(e,i.offer);break;case"candidate":this.remoteConnection.addIceCandidate(i.candidate);break}},this.channel.onConnect=()=>{this.onConnect&&this.onConnect(this)},this.channel.onDisconnect=()=>{this.onDisconnect&&this.onDisconnect(this)},this.channel.onMessage=e=>{this.onMessage&&this.onMessage(this,e)}}joinRoom(t){this.serverRoom=t,this.signalServer.joinRoom(t)}leaveRoom(){this.serverRoom&&(this.signalServer.leaveRoom(this.serverRoom),this.serverRoom=null),this.remoteConnection&&this.remoteConnection.close()}connect(){this.signalServer.start()}handleOffer(t,e){let i=new RTCPeerConnection;i.onicecandidate=s=>{this.signalServer.sendMessage(t,{type:"candidate",candidate:s.candidate})},i.ondatachannel=s=>{this.channel.channel=s.channel,this.channel.init()},i.setRemoteDescription(e).then(()=>i.createAnswer()).then(s=>i.setLocalDescription(s)).then(()=>{this.signalServer.sendMessage(t,{type:"answer",answer:i.localDescription})}),this.remoteConnection=i}},T=Object.create(null);T.open="0";T.close="1";T.ping="2";T.pong="3";T.message="4";T.upgrade="5";T.noop="6";var z=Object.create(null);Object.keys(T).forEach(t=>{z[T[t]]=t});var nt={type:"error",data:"parser error"},Vt=typeof Blob=="function"||typeof Blob<"u"&&Object.prototype.toString.call(Blob)==="[object BlobConstructor]",jt=typeof ArrayBuffer=="function",qt=t=>typeof ArrayBuffer.isView=="function"?ArrayBuffer.isView(t):t&&t.buffer instanceof ArrayBuffer,lt=({type:t,data:e},i,s)=>Vt&&e instanceof Blob?i?s(e):wt(e,s):jt&&(e instanceof ArrayBuffer||qt(e))?i?s(e):wt(new Blob([e]),s):s(T[t]+(e||"")),wt=(t,e)=>{let i=new FileReader;return i.onload=function(){let s=i.result.split(",")[1];e("b"+(s||""))},i.readAsDataURL(t)};function xt(t){return t instanceof Uint8Array?t:t instanceof ArrayBuffer?new Uint8Array(t):new Uint8Array(t.buffer,t.byteOffset,t.byteLength)}var tt;function we(t,e){if(Vt&&t.data instanceof Blob)return t.data.arrayBuffer().then(xt).then(e);if(jt&&(t.data instanceof ArrayBuffer||qt(t.data)))return e(xt(t.data));lt(t,!1,i=>{tt||(tt=new TextEncoder),e(tt.encode(i))})}var bt="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",M=typeof Uint8Array>"u"?[]:new Uint8Array(256);for(let t=0;t<bt.length;t++)M[bt.charCodeAt(t)]=t;var xe=t=>{let e=t.length*.75,i=t.length,s,n=0,r,o,a,h;t[t.length-1]==="="&&(e--,t[t.length-2]==="="&&e--);let c=new ArrayBuffer(e),l=new Uint8Array(c);for(s=0;s<i;s+=4)r=M[t.charCodeAt(s)],o=M[t.charCodeAt(s+1)],a=M[t.charCodeAt(s+2)],h=M[t.charCodeAt(s+3)],l[n++]=r<<2|o>>4,l[n++]=(o&15)<<4|a>>2,l[n++]=(a&3)<<6|h&63;return c},be=typeof ArrayBuffer=="function",dt=(t,e)=>{if(typeof t!="string")return{type:"message",data:zt(t,e)};let i=t.charAt(0);return i==="b"?{type:"message",data:Ce(t.substring(1),e)}:z[i]?t.length>1?{type:z[i],data:t.substring(1)}:{type:z[i]}:nt},Ce=(t,e)=>{if(be){let i=xe(t);return zt(i,e)}else return{base64:!0,data:t}},zt=(t,e)=>{switch(e){case"blob":return t instanceof Blob?t:new Blob([t]);case"arraybuffer":default:return t instanceof ArrayBuffer?t:t.buffer}},Wt="",Re=(t,e)=>{let i=t.length,s=new Array(i),n=0;t.forEach((r,o)=>{lt(r,!1,a=>{s[o]=a,++n===i&&e(s.join(Wt))})})},Ee=(t,e)=>{let i=t.split(Wt),s=[];for(let n=0;n<i.length;n++){let r=dt(i[n],e);if(s.push(r),r.type==="error")break}return s};function Te(){return new TransformStream({transform(t,e){we(t,i=>{let s=i.length,n;if(s<126)n=new Uint8Array(1),new DataView(n.buffer).setUint8(0,s);else if(s<65536){n=new Uint8Array(3);let r=new DataView(n.buffer);r.setUint8(0,126),r.setUint16(1,s)}else{n=new Uint8Array(9);let r=new DataView(n.buffer);r.setUint8(0,127),r.setBigUint64(1,BigInt(s))}t.data&&typeof t.data!="string"&&(n[0]|=128),e.enqueue(n),e.enqueue(i)})}})}var et;function j(t){return t.reduce((e,i)=>e+i.length,0)}function q(t,e){if(t[0].length===e)return t.shift();let i=new Uint8Array(e),s=0;for(let n=0;n<e;n++)i[n]=t[0][s++],s===t[0].length&&(t.shift(),s=0);return t.length&&s<t[0].length&&(t[0]=t[0].slice(s)),i}function Ae(t,e){et||(et=new TextDecoder);let i=[],s=0,n=-1,r=!1;return new TransformStream({transform(o,a){for(i.push(o);;){if(s===0){if(j(i)<1)break;let h=q(i,1);r=(h[0]&128)===128,n=h[0]&127,n<126?s=3:n===126?s=1:s=2}else if(s===1){if(j(i)<2)break;let h=q(i,2);n=new DataView(h.buffer,h.byteOffset,h.length).getUint16(0),s=3}else if(s===2){if(j(i)<8)break;let h=q(i,8),c=new DataView(h.buffer,h.byteOffset,h.length),l=c.getUint32(0);if(l>Math.pow(2,21)-1){a.enqueue(nt);break}n=l*Math.pow(2,32)+c.getUint32(4),s=3}else{if(j(i)<n)break;let h=q(i,n);a.enqueue(dt(r?h:et.decode(h),e)),s=0}if(n===0||n>t){a.enqueue(nt);break}}}})}var Ht=4;function m(t){if(t)return Se(t)}function Se(t){for(var e in m.prototype)t[e]=m.prototype[e];return t}m.prototype.on=m.prototype.addEventListener=function(t,e){return this._callbacks=this._callbacks||{},(this._callbacks["$"+t]=this._callbacks["$"+t]||[]).push(e),this};m.prototype.once=function(t,e){function i(){this.off(t,i),e.apply(this,arguments)}return i.fn=e,this.on(t,i),this};m.prototype.off=m.prototype.removeListener=m.prototype.removeAllListeners=m.prototype.removeEventListener=function(t,e){if(this._callbacks=this._callbacks||{},arguments.length==0)return this._callbacks={},this;var i=this._callbacks["$"+t];if(!i)return this;if(arguments.length==1)return delete this._callbacks["$"+t],this;for(var s,n=0;n<i.length;n++)if(s=i[n],s===e||s.fn===e){i.splice(n,1);break}return i.length===0&&delete this._callbacks["$"+t],this};m.prototype.emit=function(t){this._callbacks=this._callbacks||{};for(var e=new Array(arguments.length-1),i=this._callbacks["$"+t],s=1;s<arguments.length;s++)e[s-1]=arguments[s];if(i){i=i.slice(0);for(var s=0,n=i.length;s<n;++s)i[s].apply(this,e)}return this};m.prototype.emitReserved=m.prototype.emit;m.prototype.listeners=function(t){return this._callbacks=this._callbacks||{},this._callbacks["$"+t]||[]};m.prototype.hasListeners=function(t){return!!this.listeners(t).length};var Z=typeof Promise=="function"&&typeof Promise.resolve=="function"?e=>Promise.resolve().then(e):(e,i)=>i(e,0),C=typeof self<"u"?self:typeof window<"u"?window:Function("return this")(),ke="arraybuffer";function Kt(t,...e){return e.reduce((i,s)=>(t.hasOwnProperty(s)&&(i[s]=t[s]),i),{})}var Be=C.setTimeout,Oe=C.clearTimeout;function Q(t,e){e.useNativeTimers?(t.setTimeoutFn=Be.bind(C),t.clearTimeoutFn=Oe.bind(C)):(t.setTimeoutFn=C.setTimeout.bind(C),t.clearTimeoutFn=C.clearTimeout.bind(C))}var Pe=1.33;function Le(t){return typeof t=="string"?Ie(t):Math.ceil((t.byteLength||t.size)*Pe)}function Ie(t){let e=0,i=0;for(let s=0,n=t.length;s<n;s++)e=t.charCodeAt(s),e<128?i+=1:e<2048?i+=2:e<55296||e>=57344?i+=3:(s++,i+=4);return i}function Xt(){return Date.now().toString(36).substring(3)+Math.random().toString(36).substring(2,5)}function De(t){let e="";for(let i in t)t.hasOwnProperty(i)&&(e.length&&(e+="&"),e+=encodeURIComponent(i)+"="+encodeURIComponent(t[i]));return e}function Me(t){let e={},i=t.split("&");for(let s=0,n=i.length;s<n;s++){let r=i[s].split("=");e[decodeURIComponent(r[0])]=decodeURIComponent(r[1])}return e}var Ne=class extends Error{constructor(t,e,i){super(t),this.description=e,this.context=i,this.type="TransportError"}},ut=class extends m{constructor(t){super(),this.writable=!1,Q(this,t),this.opts=t,this.query=t.query,this.socket=t.socket,this.supportsBinary=!t.forceBase64}onError(t,e,i){return super.emitReserved("error",new Ne(t,e,i)),this}open(){return this.readyState="opening",this.doOpen(),this}close(){return(this.readyState==="opening"||this.readyState==="open")&&(this.doClose(),this.onClose()),this}send(t){this.readyState==="open"&&this.write(t)}onOpen(){this.readyState="open",this.writable=!0,super.emitReserved("open")}onData(t){let e=dt(t,this.socket.binaryType);this.onPacket(e)}onPacket(t){super.emitReserved("packet",t)}onClose(t){this.readyState="closed",super.emitReserved("close",t)}pause(t){}createUri(t,e={}){return t+"://"+this._hostname()+this._port()+this.opts.path+this._query(e)}_hostname(){let t=this.opts.hostname;return t.indexOf(":")===-1?t:"["+t+"]"}_port(){return this.opts.port&&(this.opts.secure&&+(this.opts.port!==443)||!this.opts.secure&&Number(this.opts.port)!==80)?":"+this.opts.port:""}_query(t){let e=De(t);return e.length?"?"+e:""}},Fe=class extends ut{constructor(){super(...arguments),this._polling=!1}get name(){return"polling"}doOpen(){this._poll()}pause(t){this.readyState="pausing";let e=()=>{this.readyState="paused",t()};if(this._polling||!this.writable){let i=0;this._polling&&(i++,this.once("pollComplete",function(){--i||e()})),this.writable||(i++,this.once("drain",function(){--i||e()}))}else e()}_poll(){this._polling=!0,this.doPoll(),this.emitReserved("poll")}onData(t){let e=i=>{if(this.readyState==="opening"&&i.type==="open"&&this.onOpen(),i.type==="close")return this.onClose({description:"transport closed by the server"}),!1;this.onPacket(i)};Ee(t,this.socket.binaryType).forEach(e),this.readyState!=="closed"&&(this._polling=!1,this.emitReserved("pollComplete"),this.readyState==="open"&&this._poll())}doClose(){let t=()=>{this.write([{type:"close"}])};this.readyState==="open"?t():this.once("open",t)}write(t){this.writable=!1,Re(t,e=>{this.doWrite(e,()=>{this.writable=!0,this.emitReserved("drain")})})}uri(){let t=this.opts.secure?"https":"http",e=this.query||{};return this.opts.timestampRequests!==!1&&(e[this.opts.timestampParam]=Xt()),!this.supportsBinary&&!e.sid&&(e.b64=1),this.createUri(t,e)}},Jt=!1;try{Jt=typeof XMLHttpRequest<"u"&&"withCredentials"in new XMLHttpRequest}catch{}var Ue=Jt;function Ve(){}var je=class extends Fe{constructor(t){if(super(t),typeof location<"u"){let e=location.protocol==="https:",i=location.port;i||(i=e?"443":"80"),this.xd=typeof location<"u"&&t.hostname!==location.hostname||i!==t.port}}doWrite(t,e){let i=this.request({method:"POST",data:t});i.on("success",e),i.on("error",(s,n)=>{this.onError("xhr post error",s,n)})}doPoll(){let t=this.request();t.on("data",this.onData.bind(this)),t.on("error",(e,i)=>{this.onError("xhr poll error",e,i)}),this.pollXhr=t}},P=class W extends m{constructor(e,i,s){super(),this.createRequest=e,Q(this,s),this._opts=s,this._method=s.method||"GET",this._uri=i,this._data=s.data!==void 0?s.data:null,this._create()}_create(){var e;let i=Kt(this._opts,"agent","pfx","key","passphrase","cert","ca","ciphers","rejectUnauthorized","autoUnref");i.xdomain=!!this._opts.xd;let s=this._xhr=this.createRequest(i);try{s.open(this._method,this._uri,!0);try{if(this._opts.extraHeaders){s.setDisableHeaderCheck&&s.setDisableHeaderCheck(!0);for(let n in this._opts.extraHeaders)this._opts.extraHeaders.hasOwnProperty(n)&&s.setRequestHeader(n,this._opts.extraHeaders[n])}}catch{}if(this._method==="POST")try{s.setRequestHeader("Content-type","text/plain;charset=UTF-8")}catch{}try{s.setRequestHeader("Accept","*/*")}catch{}(e=this._opts.cookieJar)===null||e===void 0||e.addCookies(s),"withCredentials"in s&&(s.withCredentials=this._opts.withCredentials),this._opts.requestTimeout&&(s.timeout=this._opts.requestTimeout),s.onreadystatechange=()=>{var n;s.readyState===3&&((n=this._opts.cookieJar)===null||n===void 0||n.parseCookies(s.getResponseHeader("set-cookie"))),s.readyState===4&&(s.status===200||s.status===1223?this._onLoad():this.setTimeoutFn(()=>{this._onError(typeof s.status=="number"?s.status:0)},0))},s.send(this._data)}catch(n){this.setTimeoutFn(()=>{this._onError(n)},0);return}typeof document<"u"&&(this._index=W.requestsCount++,W.requests[this._index]=this)}_onError(e){this.emitReserved("error",e,this._xhr),this._cleanup(!0)}_cleanup(e){if(!(typeof this._xhr>"u"||this._xhr===null)){if(this._xhr.onreadystatechange=Ve,e)try{this._xhr.abort()}catch{}typeof document<"u"&&delete W.requests[this._index],this._xhr=null}}_onLoad(){let e=this._xhr.responseText;e!==null&&(this.emitReserved("data",e),this.emitReserved("success"),this._cleanup())}abort(){this._cleanup()}};P.requestsCount=0;P.requests={};if(typeof document<"u"){if(typeof attachEvent=="function")attachEvent("onunload",Ct);else if(typeof addEventListener=="function"){let t="onpagehide"in C?"pagehide":"unload";addEventListener(t,Ct,!1)}}function Ct(){for(let t in P.requests)P.requests.hasOwnProperty(t)&&P.requests[t].abort()}var qe=function(){let t=Yt({xdomain:!1});return t&&t.responseType!==null}(),ze=class extends je{constructor(t){super(t);let e=t&&t.forceBase64;this.supportsBinary=qe&&!e}request(t={}){return Object.assign(t,{xd:this.xd},this.opts),new P(Yt,this.uri(),t)}};function Yt(t){let e=t.xdomain;try{if(typeof XMLHttpRequest<"u"&&(!e||Ue))return new XMLHttpRequest}catch{}if(!e)try{return new C[["Active"].concat("Object").join("X")]("Microsoft.XMLHTTP")}catch{}}var Gt=typeof navigator<"u"&&typeof navigator.product=="string"&&navigator.product.toLowerCase()==="reactnative",We=class extends ut{get name(){return"websocket"}doOpen(){let t=this.uri(),e=this.opts.protocols,i=Gt?{}:Kt(this.opts,"agent","perMessageDeflate","pfx","key","passphrase","cert","ca","ciphers","rejectUnauthorized","localAddress","protocolVersion","origin","maxPayload","family","checkServerIdentity");this.opts.extraHeaders&&(i.headers=this.opts.extraHeaders);try{this.ws=this.createSocket(t,e,i)}catch(s){return this.emitReserved("error",s)}this.ws.binaryType=this.socket.binaryType,this.addEventListeners()}addEventListeners(){this.ws.onopen=()=>{this.opts.autoUnref&&this.ws._socket.unref(),this.onOpen()},this.ws.onclose=t=>this.onClose({description:"websocket connection closed",context:t}),this.ws.onmessage=t=>this.onData(t.data),this.ws.onerror=t=>this.onError("websocket error",t)}write(t){this.writable=!1;for(let e=0;e<t.length;e++){let i=t[e],s=e===t.length-1;lt(i,this.supportsBinary,n=>{try{this.doWrite(i,n)}catch{}s&&Z(()=>{this.writable=!0,this.emitReserved("drain")},this.setTimeoutFn)})}}doClose(){typeof this.ws<"u"&&(this.ws.onerror=()=>{},this.ws.close(),this.ws=null)}uri(){let t=this.opts.secure?"wss":"ws",e=this.query||{};return this.opts.timestampRequests&&(e[this.opts.timestampParam]=Xt()),this.supportsBinary||(e.b64=1),this.createUri(t,e)}},it=C.WebSocket||C.MozWebSocket,He=class extends We{createSocket(t,e,i){return Gt?new it(t,e,i):e?new it(t,e):new it(t)}doWrite(t,e){this.ws.send(e)}},Ke=class extends ut{get name(){return"webtransport"}doOpen(){try{this._transport=new WebTransport(this.createUri("https"),this.opts.transportOptions[this.name])}catch(t){return this.emitReserved("error",t)}this._transport.closed.then(()=>{this.onClose()}).catch(t=>{this.onError("webtransport error",t)}),this._transport.ready.then(()=>{this._transport.createBidirectionalStream().then(t=>{let e=Ae(Number.MAX_SAFE_INTEGER,this.socket.binaryType),i=t.readable.pipeThrough(e).getReader(),s=Te();s.readable.pipeTo(t.writable),this._writer=s.writable.getWriter();let n=()=>{i.read().then(({done:o,value:a})=>{o||(this.onPacket(a),n())}).catch(o=>{})};n();let r={type:"open"};this.query.sid&&(r.data=`{"sid":"${this.query.sid}"}`),this._writer.write(r).then(()=>this.onOpen())})})}write(t){this.writable=!1;for(let e=0;e<t.length;e++){let i=t[e],s=e===t.length-1;this._writer.write(i).then(()=>{s&&Z(()=>{this.writable=!0,this.emitReserved("drain")},this.setTimeoutFn)})}}doClose(){var t;(t=this._transport)===null||t===void 0||t.close()}},Xe={websocket:He,webtransport:Ke,polling:ze},Je=/^(?:(?![^:@\/?#]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@\/?#]*)(?::([^:@\/?#]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/,Ye=["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"];function rt(t){if(t.length>8e3)throw"URI too long";let e=t,i=t.indexOf("["),s=t.indexOf("]");i!=-1&&s!=-1&&(t=t.substring(0,i)+t.substring(i,s).replace(/:/g,";")+t.substring(s,t.length));let n=Je.exec(t||""),r={},o=14;for(;o--;)r[Ye[o]]=n[o]||"";return i!=-1&&s!=-1&&(r.source=e,r.host=r.host.substring(1,r.host.length-1).replace(/;/g,":"),r.authority=r.authority.replace("[","").replace("]","").replace(/;/g,":"),r.ipv6uri=!0),r.pathNames=Ge(r,r.path),r.queryKey=$e(r,r.query),r}function Ge(t,e){let i=/\/{2,9}/g,s=e.replace(i,"/").split("/");return(e.slice(0,1)=="/"||e.length===0)&&s.splice(0,1),e.slice(-1)=="/"&&s.splice(s.length-1,1),s}function $e(t,e){let i={};return e.replace(/(?:^|&)([^&=]*)=?([^&]*)/g,function(s,n,r){n&&(i[n]=r)}),i}var ot=typeof addEventListener=="function"&&typeof removeEventListener=="function",H=[];ot&&addEventListener("offline",()=>{H.forEach(t=>t())},!1);var K=class X extends m{constructor(e,i){if(super(),this.binaryType=ke,this.writeBuffer=[],this._prevBufferLen=0,this._pingInterval=-1,this._pingTimeout=-1,this._maxPayload=-1,this._pingTimeoutTime=1/0,e&&typeof e=="object"&&(i=e,e=null),e){let s=rt(e);i.hostname=s.host,i.secure=s.protocol==="https"||s.protocol==="wss",i.port=s.port,s.query&&(i.query=s.query)}else i.host&&(i.hostname=rt(i.host).host);Q(this,i),this.secure=i.secure!=null?i.secure:typeof location<"u"&&location.protocol==="https:",i.hostname&&!i.port&&(i.port=this.secure?"443":"80"),this.hostname=i.hostname||(typeof location<"u"?location.hostname:"localhost"),this.port=i.port||(typeof location<"u"&&location.port?location.port:this.secure?"443":"80"),this.transports=[],this._transportsByName={},i.transports.forEach(s=>{let n=s.prototype.name;this.transports.push(n),this._transportsByName[n]=s}),this.opts=Object.assign({path:"/engine.io",agent:!1,withCredentials:!1,upgrade:!0,timestampParam:"t",rememberUpgrade:!1,addTrailingSlash:!0,rejectUnauthorized:!0,perMessageDeflate:{threshold:1024},transportOptions:{},closeOnBeforeunload:!1},i),this.opts.path=this.opts.path.replace(/\/$/,"")+(this.opts.addTrailingSlash?"/":""),typeof this.opts.query=="string"&&(this.opts.query=Me(this.opts.query)),ot&&(this.opts.closeOnBeforeunload&&(this._beforeunloadEventListener=()=>{this.transport&&(this.transport.removeAllListeners(),this.transport.close())},addEventListener("beforeunload",this._beforeunloadEventListener,!1)),this.hostname!=="localhost"&&(this._offlineEventListener=()=>{this._onClose("transport close",{description:"network connection lost"})},H.push(this._offlineEventListener))),this.opts.withCredentials&&(this._cookieJar=void 0),this._open()}createTransport(e){let i=Object.assign({},this.opts.query);i.EIO=Ht,i.transport=e,this.id&&(i.sid=this.id);let s=Object.assign({},this.opts,{query:i,socket:this,hostname:this.hostname,secure:this.secure,port:this.port},this.opts.transportOptions[e]);return new this._transportsByName[e](s)}_open(){if(this.transports.length===0){this.setTimeoutFn(()=>{this.emitReserved("error","No transports available")},0);return}let e=this.opts.rememberUpgrade&&X.priorWebsocketSuccess&&this.transports.indexOf("websocket")!==-1?"websocket":this.transports[0];this.readyState="opening";let i=this.createTransport(e);i.open(),this.setTransport(i)}setTransport(e){this.transport&&this.transport.removeAllListeners(),this.transport=e,e.on("drain",this._onDrain.bind(this)).on("packet",this._onPacket.bind(this)).on("error",this._onError.bind(this)).on("close",i=>this._onClose("transport close",i))}onOpen(){this.readyState="open",X.priorWebsocketSuccess=this.transport.name==="websocket",this.emitReserved("open"),this.flush()}_onPacket(e){if(this.readyState==="opening"||this.readyState==="open"||this.readyState==="closing")switch(this.emitReserved("packet",e),this.emitReserved("heartbeat"),e.type){case"open":this.onHandshake(JSON.parse(e.data));break;case"ping":this._sendPacket("pong"),this.emitReserved("ping"),this.emitReserved("pong"),this._resetPingTimeout();break;case"error":let i=new Error("server error");i.code=e.data,this._onError(i);break;case"message":this.emitReserved("data",e.data),this.emitReserved("message",e.data);break}}onHandshake(e){this.emitReserved("handshake",e),this.id=e.sid,this.transport.query.sid=e.sid,this._pingInterval=e.pingInterval,this._pingTimeout=e.pingTimeout,this._maxPayload=e.maxPayload,this.onOpen(),this.readyState!=="closed"&&this._resetPingTimeout()}_resetPingTimeout(){this.clearTimeoutFn(this._pingTimeoutTimer);let e=this._pingInterval+this._pingTimeout;this._pingTimeoutTime=Date.now()+e,this._pingTimeoutTimer=this.setTimeoutFn(()=>{this._onClose("ping timeout")},e),this.opts.autoUnref&&this._pingTimeoutTimer.unref()}_onDrain(){this.writeBuffer.splice(0,this._prevBufferLen),this._prevBufferLen=0,this.writeBuffer.length===0?this.emitReserved("drain"):this.flush()}flush(){if(this.readyState!=="closed"&&this.transport.writable&&!this.upgrading&&this.writeBuffer.length){let e=this._getWritablePackets();this.transport.send(e),this._prevBufferLen=e.length,this.emitReserved("flush")}}_getWritablePackets(){if(!(this._maxPayload&&this.transport.name==="polling"&&this.writeBuffer.length>1))return this.writeBuffer;let i=1;for(let s=0;s<this.writeBuffer.length;s++){let n=this.writeBuffer[s].data;if(n&&(i+=Le(n)),s>0&&i>this._maxPayload)return this.writeBuffer.slice(0,s);i+=2}return this.writeBuffer}_hasPingExpired(){if(!this._pingTimeoutTime)return!0;let e=Date.now()>this._pingTimeoutTime;return e&&(this._pingTimeoutTime=0,Z(()=>{this._onClose("ping timeout")},this.setTimeoutFn)),e}write(e,i,s){return this._sendPacket("message",e,i,s),this}send(e,i,s){return this._sendPacket("message",e,i,s),this}_sendPacket(e,i,s,n){if(typeof i=="function"&&(n=i,i=void 0),typeof s=="function"&&(n=s,s=null),this.readyState==="closing"||this.readyState==="closed")return;s=s||{},s.compress=s.compress!==!1;let r={type:e,data:i,options:s};this.emitReserved("packetCreate",r),this.writeBuffer.push(r),n&&this.once("flush",n),this.flush()}close(){let e=()=>{this._onClose("forced close"),this.transport.close()},i=()=>{this.off("upgrade",i),this.off("upgradeError",i),e()},s=()=>{this.once("upgrade",i),this.once("upgradeError",i)};return(this.readyState==="opening"||this.readyState==="open")&&(this.readyState="closing",this.writeBuffer.length?this.once("drain",()=>{this.upgrading?s():e()}):this.upgrading?s():e()),this}_onError(e){if(X.priorWebsocketSuccess=!1,this.opts.tryAllTransports&&this.transports.length>1&&this.readyState==="opening")return this.transports.shift(),this._open();this.emitReserved("error",e),this._onClose("transport error",e)}_onClose(e,i){if(this.readyState==="opening"||this.readyState==="open"||this.readyState==="closing"){if(this.clearTimeoutFn(this._pingTimeoutTimer),this.transport.removeAllListeners("close"),this.transport.close(),this.transport.removeAllListeners(),ot&&(this._beforeunloadEventListener&&removeEventListener("beforeunload",this._beforeunloadEventListener,!1),this._offlineEventListener)){let s=H.indexOf(this._offlineEventListener);s!==-1&&H.splice(s,1)}this.readyState="closed",this.id=null,this.emitReserved("close",e,i),this.writeBuffer=[],this._prevBufferLen=0}}};K.protocol=Ht;var Ze=class extends K{constructor(){super(...arguments),this._upgrades=[]}onOpen(){if(super.onOpen(),this.readyState==="open"&&this.opts.upgrade)for(let t=0;t<this._upgrades.length;t++)this._probe(this._upgrades[t])}_probe(t){let e=this.createTransport(t),i=!1;K.priorWebsocketSuccess=!1;let s=()=>{i||(e.send([{type:"ping",data:"probe"}]),e.once("packet",l=>{if(!i)if(l.type==="pong"&&l.data==="probe"){if(this.upgrading=!0,this.emitReserved("upgrading",e),!e)return;K.priorWebsocketSuccess=e.name==="websocket",this.transport.pause(()=>{i||this.readyState!=="closed"&&(c(),this.setTransport(e),e.send([{type:"upgrade"}]),this.emitReserved("upgrade",e),e=null,this.upgrading=!1,this.flush())})}else{let u=new Error("probe error");u.transport=e.name,this.emitReserved("upgradeError",u)}}))};function n(){i||(i=!0,c(),e.close(),e=null)}let r=l=>{let u=new Error("probe error: "+l);u.transport=e.name,n(),this.emitReserved("upgradeError",u)};function o(){r("transport closed")}function a(){r("socket closed")}function h(l){e&&l.name!==e.name&&n()}let c=()=>{e.removeListener("open",s),e.removeListener("error",r),e.removeListener("close",o),this.off("close",a),this.off("upgrading",h)};e.once("open",s),e.once("error",r),e.once("close",o),this.once("close",a),this.once("upgrading",h),this._upgrades.indexOf("webtransport")!==-1&&t!=="webtransport"?this.setTimeoutFn(()=>{i||e.open()},200):e.open()}onHandshake(t){this._upgrades=this._filterUpgrades(t.upgrades),super.onHandshake(t)}_filterUpgrades(t){let e=[];for(let i=0;i<t.length;i++)~this.transports.indexOf(t[i])&&e.push(t[i]);return e}},$t=class extends Ze{constructor(t,e={}){let i=typeof t=="object"?t:e;(!i.transports||i.transports&&typeof i.transports[0]=="string")&&(i.transports=(i.transports||["polling","websocket","webtransport"]).map(s=>Xe[s]).filter(s=>!!s)),super(t,i)}},Ci=$t.protocol;function Qe(t,e="",i){let s=t;i=i||typeof location<"u"&&location,t==null&&(t=i.protocol+"//"+i.host),typeof t=="string"&&(t.charAt(0)==="/"&&(t.charAt(1)==="/"?t=i.protocol+t:t=i.host+t),/^(https?|wss?):\/\//.test(t)||(typeof i<"u"?t=i.protocol+"//"+t:t="https://"+t),s=rt(t)),s.port||(/^(http|ws)$/.test(s.protocol)?s.port="80":/^(http|ws)s$/.test(s.protocol)&&(s.port="443")),s.path=s.path||"/";let r=s.host.indexOf(":")!==-1?"["+s.host+"]":s.host;return s.id=s.protocol+"://"+r+":"+s.port+e,s.href=s.protocol+"://"+r+(i&&i.port===s.port?"":":"+s.port),s}var Zt={};B(Zt,{Decoder:()=>ci,Encoder:()=>hi,PacketType:()=>p,protocol:()=>ai});var ti=typeof ArrayBuffer=="function",ei=t=>typeof ArrayBuffer.isView=="function"?ArrayBuffer.isView(t):t.buffer instanceof ArrayBuffer,Qt=Object.prototype.toString,ii=typeof Blob=="function"||typeof Blob<"u"&&Qt.call(Blob)==="[object BlobConstructor]",si=typeof File=="function"||typeof File<"u"&&Qt.call(File)==="[object FileConstructor]";function pt(t){return ti&&(t instanceof ArrayBuffer||ei(t))||ii&&t instanceof Blob||si&&t instanceof File}function J(t,e){if(!t||typeof t!="object")return!1;if(Array.isArray(t)){for(let i=0,s=t.length;i<s;i++)if(J(t[i]))return!0;return!1}if(pt(t))return!0;if(t.toJSON&&typeof t.toJSON=="function"&&arguments.length===1)return J(t.toJSON(),!0);for(let i in t)if(Object.prototype.hasOwnProperty.call(t,i)&&J(t[i]))return!0;return!1}function ni(t){let e=[],i=t.data,s=t;return s.data=at(i,e),s.attachments=e.length,{packet:s,buffers:e}}function at(t,e){if(!t)return t;if(pt(t)){let i={_placeholder:!0,num:e.length};return e.push(t),i}else if(Array.isArray(t)){let i=new Array(t.length);for(let s=0;s<t.length;s++)i[s]=at(t[s],e);return i}else if(typeof t=="object"&&!(t instanceof Date)){let i={};for(let s in t)Object.prototype.hasOwnProperty.call(t,s)&&(i[s]=at(t[s],e));return i}return t}function ri(t,e){return t.data=ht(t.data,e),delete t.attachments,t}function ht(t,e){if(!t)return t;if(t&&t._placeholder===!0){if(typeof t.num=="number"&&t.num>=0&&t.num<e.length)return e[t.num];throw new Error("illegal attachments")}else if(Array.isArray(t))for(let i=0;i<t.length;i++)t[i]=ht(t[i],e);else if(typeof t=="object")for(let i in t)Object.prototype.hasOwnProperty.call(t,i)&&(t[i]=ht(t[i],e));return t}var oi=["connect","connect_error","disconnect","disconnecting","newListener","removeListener"],ai=5,p;(function(t){t[t.CONNECT=0]="CONNECT",t[t.DISCONNECT=1]="DISCONNECT",t[t.EVENT=2]="EVENT",t[t.ACK=3]="ACK",t[t.CONNECT_ERROR=4]="CONNECT_ERROR",t[t.BINARY_EVENT=5]="BINARY_EVENT",t[t.BINARY_ACK=6]="BINARY_ACK"})(p||(p={}));var hi=class{constructor(t){this.replacer=t}encode(t){return(t.type===p.EVENT||t.type===p.ACK)&&J(t)?this.encodeAsBinary({type:t.type===p.EVENT?p.BINARY_EVENT:p.BINARY_ACK,nsp:t.nsp,data:t.data,id:t.id}):[this.encodeAsString(t)]}encodeAsString(t){let e=""+t.type;return(t.type===p.BINARY_EVENT||t.type===p.BINARY_ACK)&&(e+=t.attachments+"-"),t.nsp&&t.nsp!=="/"&&(e+=t.nsp+","),t.id!=null&&(e+=t.id),t.data!=null&&(e+=JSON.stringify(t.data,this.replacer)),e}encodeAsBinary(t){let e=ni(t),i=this.encodeAsString(e.packet),s=e.buffers;return s.unshift(i),s}};function Rt(t){return Object.prototype.toString.call(t)==="[object Object]"}var ci=class te extends m{constructor(e){super(),this.reviver=e}add(e){let i;if(typeof e=="string"){if(this.reconstructor)throw new Error("got plaintext data when reconstructing a packet");i=this.decodeString(e);let s=i.type===p.BINARY_EVENT;s||i.type===p.BINARY_ACK?(i.type=s?p.EVENT:p.ACK,this.reconstructor=new li(i),i.attachments===0&&super.emitReserved("decoded",i)):super.emitReserved("decoded",i)}else if(pt(e)||e.base64)if(this.reconstructor)i=this.reconstructor.takeBinaryData(e),i&&(this.reconstructor=null,super.emitReserved("decoded",i));else throw new Error("got binary data when not reconstructing a packet");else throw new Error("Unknown type: "+e)}decodeString(e){let i=0,s={type:Number(e.charAt(0))};if(p[s.type]===void 0)throw new Error("unknown packet type "+s.type);if(s.type===p.BINARY_EVENT||s.type===p.BINARY_ACK){let r=i+1;for(;e.charAt(++i)!=="-"&&i!=e.length;);let o=e.substring(r,i);if(o!=Number(o)||e.charAt(i)!=="-")throw new Error("Illegal attachments");s.attachments=Number(o)}if(e.charAt(i+1)==="/"){let r=i+1;for(;++i&&!(e.charAt(i)===","||i===e.length););s.nsp=e.substring(r,i)}else s.nsp="/";let n=e.charAt(i+1);if(n!==""&&Number(n)==n){let r=i+1;for(;++i;){let o=e.charAt(i);if(o==null||Number(o)!=o){--i;break}if(i===e.length)break}s.id=Number(e.substring(r,i+1))}if(e.charAt(++i)){let r=this.tryParse(e.substr(i));if(te.isPayloadValid(s.type,r))s.data=r;else throw new Error("invalid payload")}return s}tryParse(e){try{return JSON.parse(e,this.reviver)}catch{return!1}}static isPayloadValid(e,i){switch(e){case p.CONNECT:return Rt(i);case p.DISCONNECT:return i===void 0;case p.CONNECT_ERROR:return typeof i=="string"||Rt(i);case p.EVENT:case p.BINARY_EVENT:return Array.isArray(i)&&(typeof i[0]=="number"||typeof i[0]=="string"&&oi.indexOf(i[0])===-1);case p.ACK:case p.BINARY_ACK:return Array.isArray(i)}}destroy(){this.reconstructor&&(this.reconstructor.finishedReconstruction(),this.reconstructor=null)}},li=class{constructor(t){this.packet=t,this.buffers=[],this.reconPack=t}takeBinaryData(t){if(this.buffers.push(t),this.buffers.length===this.reconPack.attachments){let e=ri(this.reconPack,this.buffers);return this.finishedReconstruction(),e}return null}finishedReconstruction(){this.reconPack=null,this.buffers=[]}};function E(t,e,i){return t.on(e,i),function(){t.off(e,i)}}var di=Object.freeze({connect:1,connect_error:1,disconnect:1,disconnecting:1,newListener:1,removeListener:1}),ee=class extends m{constructor(t,e,i){super(),this.connected=!1,this.recovered=!1,this.receiveBuffer=[],this.sendBuffer=[],this._queue=[],this._queueSeq=0,this.ids=0,this.acks={},this.flags={},this.io=t,this.nsp=e,i&&i.auth&&(this.auth=i.auth),this._opts=Object.assign({},i),this.io._autoConnect&&this.open()}get disconnected(){return!this.connected}subEvents(){if(this.subs)return;let t=this.io;this.subs=[E(t,"open",this.onopen.bind(this)),E(t,"packet",this.onpacket.bind(this)),E(t,"error",this.onerror.bind(this)),E(t,"close",this.onclose.bind(this))]}get active(){return!!this.subs}connect(){return this.connected?this:(this.subEvents(),this.io._reconnecting||this.io.open(),this.io._readyState==="open"&&this.onopen(),this)}open(){return this.connect()}send(...t){return t.unshift("message"),this.emit.apply(this,t),this}emit(t,...e){var i,s,n;if(di.hasOwnProperty(t))throw new Error('"'+t.toString()+'" is a reserved event name');if(e.unshift(t),this._opts.retries&&!this.flags.fromQueue&&!this.flags.volatile)return this._addToQueue(e),this;let r={type:p.EVENT,data:e};if(r.options={},r.options.compress=this.flags.compress!==!1,typeof e[e.length-1]=="function"){let c=this.ids++,l=e.pop();this._registerAckCallback(c,l),r.id=c}let o=(s=(i=this.io.engine)===null||i===void 0?void 0:i.transport)===null||s===void 0?void 0:s.writable,a=this.connected&&!(!((n=this.io.engine)===null||n===void 0)&&n._hasPingExpired());return this.flags.volatile&&!o||(a?(this.notifyOutgoingListeners(r),this.packet(r)):this.sendBuffer.push(r)),this.flags={},this}_registerAckCallback(t,e){var i;let s=(i=this.flags.timeout)!==null&&i!==void 0?i:this._opts.ackTimeout;if(s===void 0){this.acks[t]=e;return}let n=this.io.setTimeoutFn(()=>{delete this.acks[t];for(let o=0;o<this.sendBuffer.length;o++)this.sendBuffer[o].id===t&&this.sendBuffer.splice(o,1);e.call(this,new Error("operation has timed out"))},s),r=(...o)=>{this.io.clearTimeoutFn(n),e.apply(this,o)};r.withError=!0,this.acks[t]=r}emitWithAck(t,...e){return new Promise((i,s)=>{let n=(r,o)=>r?s(r):i(o);n.withError=!0,e.push(n),this.emit(t,...e)})}_addToQueue(t){let e;typeof t[t.length-1]=="function"&&(e=t.pop());let i={id:this._queueSeq++,tryCount:0,pending:!1,args:t,flags:Object.assign({fromQueue:!0},this.flags)};t.push((s,...n)=>i!==this._queue[0]?void 0:(s!==null?i.tryCount>this._opts.retries&&(this._queue.shift(),e&&e(s)):(this._queue.shift(),e&&e(null,...n)),i.pending=!1,this._drainQueue())),this._queue.push(i),this._drainQueue()}_drainQueue(t=!1){if(!this.connected||this._queue.length===0)return;let e=this._queue[0];e.pending&&!t||(e.pending=!0,e.tryCount++,this.flags=e.flags,this.emit.apply(this,e.args))}packet(t){t.nsp=this.nsp,this.io._packet(t)}onopen(){typeof this.auth=="function"?this.auth(t=>{this._sendConnectPacket(t)}):this._sendConnectPacket(this.auth)}_sendConnectPacket(t){this.packet({type:p.CONNECT,data:this._pid?Object.assign({pid:this._pid,offset:this._lastOffset},t):t})}onerror(t){this.connected||this.emitReserved("connect_error",t)}onclose(t,e){this.connected=!1,delete this.id,this.emitReserved("disconnect",t,e),this._clearAcks()}_clearAcks(){Object.keys(this.acks).forEach(t=>{if(!this.sendBuffer.some(i=>String(i.id)===t)){let i=this.acks[t];delete this.acks[t],i.withError&&i.call(this,new Error("socket has been disconnected"))}})}onpacket(t){if(t.nsp===this.nsp)switch(t.type){case p.CONNECT:t.data&&t.data.sid?this.onconnect(t.data.sid,t.data.pid):this.emitReserved("connect_error",new Error("It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)"));break;case p.EVENT:case p.BINARY_EVENT:this.onevent(t);break;case p.ACK:case p.BINARY_ACK:this.onack(t);break;case p.DISCONNECT:this.ondisconnect();break;case p.CONNECT_ERROR:this.destroy();let i=new Error(t.data.message);i.data=t.data.data,this.emitReserved("connect_error",i);break}}onevent(t){let e=t.data||[];t.id!=null&&e.push(this.ack(t.id)),this.connected?this.emitEvent(e):this.receiveBuffer.push(Object.freeze(e))}emitEvent(t){if(this._anyListeners&&this._anyListeners.length){let e=this._anyListeners.slice();for(let i of e)i.apply(this,t)}super.emit.apply(this,t),this._pid&&t.length&&typeof t[t.length-1]=="string"&&(this._lastOffset=t[t.length-1])}ack(t){let e=this,i=!1;return function(...s){i||(i=!0,e.packet({type:p.ACK,id:t,data:s}))}}onack(t){let e=this.acks[t.id];typeof e=="function"&&(delete this.acks[t.id],e.withError&&t.data.unshift(null),e.apply(this,t.data))}onconnect(t,e){this.id=t,this.recovered=e&&this._pid===e,this._pid=e,this.connected=!0,this.emitBuffered(),this.emitReserved("connect"),this._drainQueue(!0)}emitBuffered(){this.receiveBuffer.forEach(t=>this.emitEvent(t)),this.receiveBuffer=[],this.sendBuffer.forEach(t=>{this.notifyOutgoingListeners(t),this.packet(t)}),this.sendBuffer=[]}ondisconnect(){this.destroy(),this.onclose("io server disconnect")}destroy(){this.subs&&(this.subs.forEach(t=>t()),this.subs=void 0),this.io._destroy(this)}disconnect(){return this.connected&&this.packet({type:p.DISCONNECT}),this.destroy(),this.connected&&this.onclose("io client disconnect"),this}close(){return this.disconnect()}compress(t){return this.flags.compress=t,this}get volatile(){return this.flags.volatile=!0,this}timeout(t){return this.flags.timeout=t,this}onAny(t){return this._anyListeners=this._anyListeners||[],this._anyListeners.push(t),this}prependAny(t){return this._anyListeners=this._anyListeners||[],this._anyListeners.unshift(t),this}offAny(t){if(!this._anyListeners)return this;if(t){let e=this._anyListeners;for(let i=0;i<e.length;i++)if(t===e[i])return e.splice(i,1),this}else this._anyListeners=[];return this}listenersAny(){return this._anyListeners||[]}onAnyOutgoing(t){return this._anyOutgoingListeners=this._anyOutgoingListeners||[],this._anyOutgoingListeners.push(t),this}prependAnyOutgoing(t){return this._anyOutgoingListeners=this._anyOutgoingListeners||[],this._anyOutgoingListeners.unshift(t),this}offAnyOutgoing(t){if(!this._anyOutgoingListeners)return this;if(t){let e=this._anyOutgoingListeners;for(let i=0;i<e.length;i++)if(t===e[i])return e.splice(i,1),this}else this._anyOutgoingListeners=[];return this}listenersAnyOutgoing(){return this._anyOutgoingListeners||[]}notifyOutgoingListeners(t){if(this._anyOutgoingListeners&&this._anyOutgoingListeners.length){let e=this._anyOutgoingListeners.slice();for(let i of e)i.apply(this,t.data)}}};function L(t){t=t||{},this.ms=t.min||100,this.max=t.max||1e4,this.factor=t.factor||2,this.jitter=t.jitter>0&&t.jitter<=1?t.jitter:0,this.attempts=0}L.prototype.duration=function(){var t=this.ms*Math.pow(this.factor,this.attempts++);if(this.jitter){var e=Math.random(),i=Math.floor(e*this.jitter*t);t=(Math.floor(e*10)&1)==0?t-i:t+i}return Math.min(t,this.max)|0};L.prototype.reset=function(){this.attempts=0};L.prototype.setMin=function(t){this.ms=t};L.prototype.setMax=function(t){this.max=t};L.prototype.setJitter=function(t){this.jitter=t};var ct=class extends m{constructor(t,e){var i;super(),this.nsps={},this.subs=[],t&&typeof t=="object"&&(e=t,t=void 0),e=e||{},e.path=e.path||"/socket.io",this.opts=e,Q(this,e),this.reconnection(e.reconnection!==!1),this.reconnectionAttempts(e.reconnectionAttempts||1/0),this.reconnectionDelay(e.reconnectionDelay||1e3),this.reconnectionDelayMax(e.reconnectionDelayMax||5e3),this.randomizationFactor((i=e.randomizationFactor)!==null&&i!==void 0?i:.5),this.backoff=new L({min:this.reconnectionDelay(),max:this.reconnectionDelayMax(),jitter:this.randomizationFactor()}),this.timeout(e.timeout==null?2e4:e.timeout),this._readyState="closed",this.uri=t;let s=e.parser||Zt;this.encoder=new s.Encoder,this.decoder=new s.Decoder,this._autoConnect=e.autoConnect!==!1,this._autoConnect&&this.open()}reconnection(t){return arguments.length?(this._reconnection=!!t,t||(this.skipReconnect=!0),this):this._reconnection}reconnectionAttempts(t){return t===void 0?this._reconnectionAttempts:(this._reconnectionAttempts=t,this)}reconnectionDelay(t){var e;return t===void 0?this._reconnectionDelay:(this._reconnectionDelay=t,(e=this.backoff)===null||e===void 0||e.setMin(t),this)}randomizationFactor(t){var e;return t===void 0?this._randomizationFactor:(this._randomizationFactor=t,(e=this.backoff)===null||e===void 0||e.setJitter(t),this)}reconnectionDelayMax(t){var e;return t===void 0?this._reconnectionDelayMax:(this._reconnectionDelayMax=t,(e=this.backoff)===null||e===void 0||e.setMax(t),this)}timeout(t){return arguments.length?(this._timeout=t,this):this._timeout}maybeReconnectOnOpen(){!this._reconnecting&&this._reconnection&&this.backoff.attempts===0&&this.reconnect()}open(t){if(~this._readyState.indexOf("open"))return this;this.engine=new $t(this.uri,this.opts);let e=this.engine,i=this;this._readyState="opening",this.skipReconnect=!1;let s=E(e,"open",function(){i.onopen(),t&&t()}),n=o=>{this.cleanup(),this._readyState="closed",this.emitReserved("error",o),t?t(o):this.maybeReconnectOnOpen()},r=E(e,"error",n);if(this._timeout!==!1){let o=this._timeout,a=this.setTimeoutFn(()=>{s(),n(new Error("timeout")),e.close()},o);this.opts.autoUnref&&a.unref(),this.subs.push(()=>{this.clearTimeoutFn(a)})}return this.subs.push(s),this.subs.push(r),this}connect(t){return this.open(t)}onopen(){this.cleanup(),this._readyState="open",this.emitReserved("open");let t=this.engine;this.subs.push(E(t,"ping",this.onping.bind(this)),E(t,"data",this.ondata.bind(this)),E(t,"error",this.onerror.bind(this)),E(t,"close",this.onclose.bind(this)),E(this.decoder,"decoded",this.ondecoded.bind(this)))}onping(){this.emitReserved("ping")}ondata(t){try{this.decoder.add(t)}catch(e){this.onclose("parse error",e)}}ondecoded(t){Z(()=>{this.emitReserved("packet",t)},this.setTimeoutFn)}onerror(t){this.emitReserved("error",t)}socket(t,e){let i=this.nsps[t];return i?this._autoConnect&&!i.active&&i.connect():(i=new ee(this,t,e),this.nsps[t]=i),i}_destroy(t){let e=Object.keys(this.nsps);for(let i of e)if(this.nsps[i].active)return;this._close()}_packet(t){let e=this.encoder.encode(t);for(let i=0;i<e.length;i++)this.engine.write(e[i],t.options)}cleanup(){this.subs.forEach(t=>t()),this.subs.length=0,this.decoder.destroy()}_close(){this.skipReconnect=!0,this._reconnecting=!1,this.onclose("forced close")}disconnect(){return this._close()}onclose(t,e){var i;this.cleanup(),(i=this.engine)===null||i===void 0||i.close(),this.backoff.reset(),this._readyState="closed",this.emitReserved("close",t,e),this._reconnection&&!this.skipReconnect&&this.reconnect()}reconnect(){if(this._reconnecting||this.skipReconnect)return this;let t=this;if(this.backoff.attempts>=this._reconnectionAttempts)this.backoff.reset(),this.emitReserved("reconnect_failed"),this._reconnecting=!1;else{let e=this.backoff.duration();this._reconnecting=!0;let i=this.setTimeoutFn(()=>{t.skipReconnect||(this.emitReserved("reconnect_attempt",t.backoff.attempts),!t.skipReconnect&&t.open(s=>{s?(t._reconnecting=!1,t.reconnect(),this.emitReserved("reconnect_error",s)):t.onreconnect()}))},e);this.opts.autoUnref&&i.unref(),this.subs.push(()=>{this.clearTimeoutFn(i)})}}onreconnect(){let t=this.backoff.attempts;this._reconnecting=!1,this.backoff.reset(),this.emitReserved("reconnect",t)}},I={};function Y(t,e){typeof t=="object"&&(e=t,t=void 0),e=e||{};let i=Qe(t,e.path||"/socket.io"),s=i.source,n=i.id,r=i.path,o=I[n]&&r in I[n].nsps,a=e.forceNew||e["force new connection"]||e.multiplex===!1||o,h;return a?h=new ct(s,e):(I[n]||(I[n]=new ct(s,e)),h=I[n]),i.query&&!e.query&&(e.query=i.queryKey),h.socket(i.path,e)}Object.assign(Y,{Manager:ct,Socket:ee,io:Y,connect:Y});var ie=class{params;socket;connected;rooms;onMessage;onConnect;onDisconnect;onJoinRoom;onLeaveRoom;constructor(t){this.params=t,this.connected=!1,this.rooms=new Set}start(){this.socket=Y(this.params.host),this.socket.on("connect",()=>{this.connected=!0,this.onConnect&&this.onConnect()}),this.socket.on("message",t=>{this.onMessage&&this.onMessage(t.target,t.data.message)}),this.socket.on("join-room",t=>{t.target==this.socket.id&&this.rooms.add(t.data.room),this.onJoinRoom&&this.onJoinRoom(t.target,t.data.room)}),this.socket.on("leave-room",t=>{t.target==this.socket.id&&this.rooms.delete(t.data.room),this.onLeaveRoom&&this.onLeaveRoom(t.target,t.data.room)}),this.socket.on("disconnect",()=>{this.connected=!1,this.onDisconnect&&this.onDisconnect()})}sendMessage(t,e){this.socket.emit("message",{emitType:"single",message:e,to:t})}broadcastMessage(t,e=[]){this.socket.emit("message",{emitType:"broadcast",message:t,rooms:e})}joinRoom(t){this.socket.emit("room",{action:"join",room:t})}leaveRoom(t){this.socket.emit("room",{action:"leave",room:t})}},ui=class extends S{_refreshRate;_channelClient;_interval;constructor(t){super(),this._refreshRate=t.refreshRate??1e3/30,this._channelClient=new ve(new ie({host:t.host}))}start(){this._channelClient.onConnect=()=>{this.broadcast({topic:"connect"})},this._channelClient.onDisconnect=()=>{this.broadcast({topic:"disconnect"})},this._channelClient.onMessage=(t,e)=>{switch(e=JSON.parse(e),e.type){case"data":this.broadcast({topic:"data",data:e.data});break;case"join":this.broadcast({topic:"join",socketId:e.socketId});break;case"leave":this.broadcast({topic:"leave",socketId:e.socketId});break}},this._interval=setInterval(()=>this._updateEntity(),this._refreshRate),this._channelClient.connect()}destroy(){this._interval&&clearInterval(this._interval)}_updateEntity(){this._channelClient.channel.ready&&this._channelClient.channel.send(this._entity.getComponent("Serializer").serialize())}},pi=class{socketId;server;localConnection;channel;constructor(t,e){this.socketId=t,this.server=e,this.localConnection=new RTCPeerConnection,this.localConnection.onicecandidate=s=>{e.signalServer.sendMessage(t,{type:"candidte",candidate:s.candidate})};let i=this.localConnection.createDataChannel("main");this.channel=new Ut(i),this.channel.init(),this.channel.onConnect=()=>{e.onConnect&&e.onConnect(this)},this.channel.onDisconnect=()=>{e.removeConnection(this),e.onDisconnect&&e.onDisconnect(this)},this.channel.onMessage=s=>{e.onMessage&&e.onMessage(this,s)},this.localConnection.createOffer().then(s=>this.localConnection.setLocalDescription(s)).then(()=>{e.signalServer.sendMessage(t,{type:"offer",offer:this.localConnection.localDescription})})}handleSignalMessage(t){switch(t.type){case"answer":this.localConnection.setRemoteDescription(t.answer);break;case"candidate":this.localConnection.addIceCandidate(t.candidate);break}}get connected(){return this.channel.ready}},fi=class{serverRoom;signalServer;connections;onStart;onConnect;onDisconnect;onMessage;constructor(t,e){this.serverRoom=t,this.signalServer=e,this.connections=[],e.onConnect=()=>{e.joinRoom(t),this.onStart&&this.onStart()},e.onJoinRoom=(i,s)=>{e.socket.id==i||s!=this.serverRoom||this.createConnection(i)},e.onLeaveRoom=(i,s)=>{if(e.socket.id==i||s!=this.serverRoom)return;let n=this.connections.find(r=>r.socketId==i);n&&n.localConnection.close()},e.onMessage=(i,s)=>{let n=this.connections.find(r=>r.socketId==i);n&&n.handleSignalMessage(s)}}connect(){this.signalServer.start()}createConnection(t){let e=new pi(t,this);this.connections.push(e)}removeConnection(t){this.connections.splice(this.connections.indexOf(t),1)}},_i=class extends S{_running;_refreshRate;_channelServer;_interval;_entityData;constructor(t){super(),this._refreshRate=t.refreshRate??1e3/30,this._entityData=[],this._running=!1,this._channelServer=new fi(t.room,new ie({host:t.host}))}start(){this._channelServer.onStart=()=>{this._running=!0,console.log("Channel server is running")},this._channelServer.onConnect=t=>{let e={socketId:t.socketId};this._entityData.push(e),this._sendTextDataToAll({type:"join",socketId:t.socketId})},this._channelServer.onDisconnect=t=>{let e=this._entityData.find(i=>i.socketId==t.socketId);this._entityData.splice(this._entityData.indexOf(e),1),this._sendTextDataToAll({type:"leave",socketId:t.socketId})},this._channelServer.onMessage=(t,e)=>{let i=this._entityData.find(s=>s.socketId==t.socketId);i&&(i.data=JSON.parse(e))},this._channelServer.connect(),this._interval=setInterval(()=>{this._updateEntities()},this._refreshRate)}destroy(){this._running=!1,this._interval&&clearInterval(this._interval)}_updateEntities(){this._running&&this._sendTextDataToAll({type:"data",data:this._entityData})}_sendTextData(t,e){t.channel.send(JSON.stringify(e))}_sendTextDataToAll(t){for(let e of this._channelServer.connections)e.connected&&this._sendTextData(e,t)}},gi=class extends S{constructor(){super(),this._parent=null,this._children=new Set,this._position=new k,this._scale=new k(1,1)}get position(){return this._position}set position(t){this._position.copy(t)}get scale(){return this._scale}set scale(t){this._scale.copy(t)}getWorldPosition(){return this._parent?this._parent.getWorldPosition().add(this._position):this._position.clone()}setParent(t){this._parent&&this._position.add(this._parent.getWorldPosition()),t&&this._position.sub(t.getWorldPosition()),this._parent=t}},mi=class se{static _ids=0;static genName(){return"_entity_"+this._ids++}constructor(e){typeof e>"u"?this._name=se.genName():this._name=e,this._groups=new Set,this._componentsMap=new Map,this._components=[],this._scene=null,this._transform=new gi,this._handlers={},this.addComponent("Transform",this._transform)}get name(){return this._name}get groups(){return this._groups}get transform(){return this._transform}addComponent(e,i){return i._entity=this,this._componentsMap.set(e,i),this._components.push(i),i}getComponent(e){return this._componentsMap.get(e)}start(){for(let e=0;e<this._components.length;++e)this._components[e].start()}update(e){for(let i=0;i<this._components.length;++i)this._components[i].update(e)}destroy(){for(let e=0;e<this._components.length;++e)this._components[e].destroy()}registerHandler(e,i){e in this._handlers||(this._handlers[e]=[]),this._handlers[e].push(i)}broadcast(e){if(e.topic in this._handlers)for(let i of this._handlers[e.topic])i(e)}},yi=class{constructor(){this._entities=[],this._entityMap=new Map}add(t){this._entities.push(t),this._entityMap.set(t.name,t)}get(t){return this._entityMap.get(t)}remove(t){let e=this._entities.indexOf(t);this._entities.splice(e,1),this._entityMap.delete(t.name)}},vi=function(){class t extends S{constructor(i){super(),this._viewport=i.viewport,this._wcWidth=i.wcWidth,this._projectionM=O.create(),this._viewM=O.create(),this._projectionViewM=O.create()}get viewport(){return this._viewport}set viewport(i){this._viewport=i}get projection(){return this._projectionM}get view(){return this._viewM}get projectionView(){return this._projectionViewM}getBoundingRect(){let i=this._wcWidth/this._entity.transform.scale.x,s=this._getWCHeight()/this._entity.transform.scale.y,n=this._entity.transform.position;return{x:n.x-i/2,y:n.y-s/2,width:i,height:s}}update(){let i=this._wcWidth*.5/this._entity.transform.scale.x,s=this._getWCHeight()*.5/this._entity.transform.scale.y;O.ortho(this._projectionM,-i,i,s,-s,0,100),this._viewM[12]=-this._entity.transform.position.x,this._viewM[13]=-this._entity.transform.position.y,O.multiply(this._projectionViewM,this._projectionM,this._viewM)}begin(i){let s=this._viewport[0],n=i.canvas.height-this._viewport[3]-this._viewport[1],r=this._viewport[2],o=this._viewport[3];i.viewport(s,n,r,o)}_getWCHeight(){return this._wcWidth*this._viewport[3]/this._viewport[2]}}return{Camera:t}}(),wi=class{_renderer;constructor(){this._started=!1,this._entityManager=new yi,this._pendingEntities=[],this._entitiesToRemove=[],this._camera={}}get camera(){return this._camera}get renderer(){return this._renderer}init(){}createEntity(t){let e=new mi(t);return this._started?this._pendingEntities.push(e):(this._entityManager.add(e),e._scene=this),e}removeEntity(t){this._started?this._entitiesToRemove.push(t):this._entityManager.remove(t)}getEntitiesByGroup(t){return this._entityManager._entities.filter(e=>e.groups.has(t))}getEntityByName(t){return this._entityManager.get(t)}createCamera(t,e){let i=this._camera[t]=new vi.Camera(e),s=this.createEntity();return s.addComponent("camera",i),s.groups.add("camera"),i}start(){this._renderer.start();for(let t=0;t<this._entityManager._entities.length;++t)this._entityManager._entities[t].start();this._started=!0}update(t){for(let e=0;e<this._entityManager._entities.length;++e)this._entityManager._entities[e].update(t);for(;this._pendingEntities.length>0;){let e=this._pendingEntities.pop();this._entityManager.add(e),e._scene=this,e.start()}for(;this._entitiesToRemove.length>0;){let e=this._entitiesToRemove.pop();e.destroy(),this._entityManager.remove(e)}}render(){for(let t in this._camera)this._camera[t].update();this._renderer.render()}destroy(){for(let t=0;t<this._entityManager._entities.length;++t)this._entityManager._entities[t].destroy();this._started=!1}},d=function(){class t{static _instance=null;_config;_canvas;_lastRAF;_dt;_accTime;_fpsCounter;_fps;_scene;constructor(){this._lastRAF=void 0,this._dt=0,this._accTime=0,this._fpsCounter=0,this._fps=0,this._scene=null}static get config(){return this._get()._config}static _get(){return this._instance==null&&(this._instance=new t),this._instance}static async init(i){let s=this._get();s._config=i,s._canvas=new Ot.GLCanvas,i.container.appendChild(s._canvas.domElement),s._canvas.setViewportMode(i.viewportMode),s._canvas.setSize(i.width,i.height),s._canvas.start(),st._get().start(),await i.preload(),this.changeScene(i.scene,i.sceneParams),s._RAF()}static changeScene(i,s){let n=this._get();n._scene&&n._scene.destroy(),i._renderer=new Pt.Renderer(n._canvas.context),i.createCamera("main",{viewport:[0,0,n._config.width,n._config.height],wcWidth:n._config.width}),i.init(s),i.start(),n._scene=i}update(){st._get().update();for(let i of $.AssetsManager._textures.values())i.update(this._dt);this._scene.update(this._dt)}render(){let i=this._canvas.context;i.enable(i.BLEND),i.blendFunc(i.SRC_ALPHA,i.ONE_MINUS_SRC_ALPHA),this._scene.renderer.render()}_RAF(){requestAnimationFrame(i=>{this._RAF(),i*=.001,this._dt=i-(this._lastRAF||i),this._dt=Math.min(this._dt,1/20),this._lastRAF=i,this._accTime+=this._dt,++this._fpsCounter,this._accTime>=1&&(this._accTime=0,this._fps=this._fpsCounter,this._fpsCounter=0),this.update(),this.render()})}}return{Lancelot:t,Scene:wi,Component:S,graphics:Et,utils:Lt,math:It,input:Dt,geometry:Nt,network:Ft}}();var{AssetsManager:A,loadImage:ft}=d.utils.assets,{Vector:R}=d.math,{ChannelServerController:xi,ChannelClientController:bi}=d.network,f=16,ne="GrottoTest",re="https://grotto-online.onrender.com",oe=1e3/60,_t=class extends d.Component{serialize(){let e=this.getComponent("controller"),i={};return i.position=this._entity.transform.position,i.velocity=e._velocity,i.grounded=e._grounded,i.climbing=e._climbing,i.input=e._input,JSON.stringify(i)}},gt=class extends d.Component{constructor(){super(),this._velocity=new R,this._grounded=!1,this._climbing=!1,this._slopes=[]}updatePhysics(e){let i=this._velocity.clone().scale(e);this._grounded=!1,this._entity.transform.position.x+=i.x;let s=this.getComponent("collider"),n;s.setPosition(this._entity.transform.position);let r=s.shape,o=s.shape.clone();if(this._slopes.length)for(let a of this._slopes)this._updateSlope(a);else{n=this._getTiles(new R(r.getLeft(),r.getTop()),new R(r.getRight(),r.getBottom())),n=n.filter(a=>a.tile&&a.tile.getProperty("collide"));for(let a of n)this._collide(a,i.x<0?"l":"r",o)}this._entity.transform.position.y+=i.y,s.setPosition(this._entity.transform.position),n=this._getTiles(new R(r.getLeft(),r.getTop()),new R(r.getRight(),r.getBottom())),n=n.filter(a=>a.tile&&(a.tile.getProperty("collide")||this._isTopLedder(a)&&!this._climbing));for(let a of n)this._collide(a,i.y<0?"u":"d",o)}_isTopLedder(e){let s=this._entity._scene.getEntityByName("levelMap").getComponent("tilemap").tilemap.getLayerByName("midground").getTile(e.x,e.y-1);return e.tile.getProperty("ledder")&&(!s||s.tile&&s.tile.getProperty("ledder")==!1)}_getTiles(e,i){let s=[],n=this._entity._scene.getEntityByName("levelMap").getComponent("tilemap"),r=~~(e.x/n.tilemap.tilewidth),o=~~(i.x/n.tilemap.tilewidth),a=~~(e.y/n.tilemap.tileheight),h=~~(i.y/n.tilemap.tileheight),l=n.tilemap.getLayers().find(u=>u.name=="midground");for(let u=r;u<=o;++u)for(let _=a;_<=h;++_)s.push({tile:l.getTile(u,_),x:u,y:_});return s}_updateSlope(e){let s=this.getComponent("collider").shape,n=(e.y+1-e.tile.getProperty("y1"))*f,r=(e.y+1-e.tile.getProperty("y2"))*f,o=e.x*f,a=(e.x+1)*f;if((s.getLeft()>a||s.getRight()<o)&&(s.getBottom()>=Math.max(n,r)||s.getBottom()<=Math.min(n,r))){let l=this._slopes.indexOf(e);this._slopes.splice(l,1);return}let h=n<r?s.getLeft():s.getRight(),c=d.math.math.map(n,r,o,a,d.math.math.clamp(h,o,a));this._entity.transform.position.y=c-s.height/2,s.getBottom()>c&&(this._grounded=!0,this._entity.transform.position.y=c-s.height/2,this._velocity.y=0)}_collide(e,i,s){let n=this.getComponent("collider"),r=n.shape,o=new d.geometry.shape.Rect(f,f);if(o.setPosition((e.x+.5)*f,(e.y+.5)*f),!!r.intersects(o)){if(e.tile.getProperty("slope")){if(i!="d")return;let h=this.getComponent("collider").shape,c=(e.y+1-e.tile.getProperty("y1"))*f,l=(e.y+1-e.tile.getProperty("y2"))*f,u=e.x*f,_=(e.x+1)*f,g=c<l?h.getLeft():h.getRight(),b=d.math.math.map(c,l,u,_,d.math.math.clamp(g,u,_));(h.getBottom()>b||this._slopes.length)&&(this._grounded=!0,this._slopes.push(e),h.getBottom()>b&&(this._entity.transform.position.y=b-h.height/2,this._velocity.y=0))}else switch(i){case"l":r.getLeft()<o.getRight()&&(this._entity.transform.position.x=o.getRight()+r.width/2,this._velocity.x=0);break;case"r":r.getRight()>o.getLeft()&&(this._entity.transform.position.x=o.getLeft()-r.width/2,this._velocity.x=0);break;case"u":!e.tile.getProperty("ledder")&&r.getTop()<o.getBottom()&&(this._entity.transform.position.y=o.getBottom()+r.height/2,this._velocity.y=0);break;case"d":r.getBottom()>o.getTop()&&(!e.tile.getProperty("ledder")||s.getBottom()<=o.getTop())&&(this._grounded=!0,this._entity.transform.position.y=o.getTop()-r.height/2,this._velocity.y=0);break}n.setPosition(this._entity.transform.position)}}},mt=class extends gt{constructor(e){super(),this._maxSpeed=80,this._acceleration=300,this._jumpForce=95,this._climbingSpeed=40,this._gravity=180,this._idleClimbing=!1,this._moving=!1,this._input={left:!1,right:!1,jump:!1,up:!1,down:!1},this._ledders=[],this._justClimbed=0,this._remote=e.remote??!1,this._roomCreated=!1}start(){this.getComponent("sprite").playAnim(d.graphics.Animations.get("player.idle"),!0)}update(e){this._remote||this._updateInput(),this._moving=!1,this._justClimbed>0&&--this._justClimbed,!(this._input.up||this._input.down)&&this._input.jump&&(this._grounded||this._climbing)&&(this._grounded=!1,this._climbing=!1,this._slopes=[],this._velocity.y=-this._jumpForce*(Math.abs(this._velocity.x/this._maxSpeed)*.1+1));let i=this.getComponent("collider");i.setPosition(this._entity.transform.position);let s=i.shape;if(this._climbing){this._idleClimbing=!0;let n=1/0;this._ledders.forEach(r=>{let o=new d.geometry.shape.Rect(f,f);return o.setPosition((r.x+.5)*f,(r.y+.5)*f),n>o.getTop()&&(n=o.getTop()),s.intersects(o)}),this._ledders=this._getTiles(new R(s.getLeft()+s.width/2,s.getTop()),new R(s.getRight()-s.width/2,s.getBottom())).filter(r=>(new d.geometry.shape.Rect(f,f).setPosition((r.x+.5)*16,(r.y+.5)*f),r.tile&&r.tile.getProperty("ledder"))),(this._input.left||this._input.right)&&!(this._input.up||this._input.down)||!this._ledders.length?(this._climbing=!1,this._velocity.y=0,this._input.up&&!this._ledders.length&&(this._entity.transform.position.y=n-s.height/2,this._justClimbed=2)):this._input.up?(this._idleClimbing=!1,this._velocity.y=-this._climbingSpeed):this._input.down?(this._idleClimbing=!1,this._velocity.y=this._climbingSpeed,this._grounded&&(this._climbing=!1)):this._velocity.y=0}else{if(this._input.left?(this._moving=!0,this._velocity.x-=this._acceleration*e):this._input.right&&(this._moving=!0,this._velocity.x+=this._acceleration*e),this._input.up||this._input.down){let n=this._getTiles(new R(s.getLeft()+s.width/2,s.getTop()),new R(s.getRight()-s.width/2,s.getBottom()));this._ledders=n.filter(r=>{let o=new d.geometry.shape.Rect(f,f);return o.setPosition((r.x+.5)*16,(r.y+.5)*f),r.tile&&r.tile.getProperty("ledder")&&(this._input.up&&o.getTop()<s.getBottom()||this._input.down&&o.getBottom()>s.getBottom())}),this._ledders.length&&(this._climbing=!0,this._velocity.x=0,this._entity.transform.position.x=(this._ledders[0].x+.5)*f)}this._moving||(this._velocity.x-=this._velocity.x*Math.min((this._grounded?10:2.5)*e,1)),Math.abs(this._velocity.x)>this._maxSpeed&&(this._velocity.x=Math.sign(this._velocity.x)*this._maxSpeed),this._velocity.y+=this._gravity*e}this._updateSprite(),this.updatePhysics(e)}_updateSprite(){let e=this.getComponent("sprite");this._climbing||this._justClimbed>0?(e.isAnimPlaying("player.climb")||e.playAnim(d.graphics.Animations.get("player.climb"),!0),this._idleClimbing?e.pauseAnim():e.resumeAnim()):(this._input.left?this._entity.transform.scale.x=-1:this._input.right&&(this._entity.transform.scale.x=1),this._grounded?this._moving?e.isAnimPlaying("player.run")||e.playAnim(d.graphics.Animations.get("player.run"),!0):e.isAnimPlaying("player.idle")||e.playAnim(d.graphics.Animations.get("player.idle"),!0):e.isAnimPlaying("player.jump")||e.playAnim(d.graphics.Animations.get("player.jump"),!0))}_updateInput(){!this._roomCreated&&d.input.KeyListener.isPressed("KeyK")&&this._createRoom(),d.input.KeyListener.isPressed("KeyJ")&&this._joinRoom(),d.input.KeyListener.isPressed("KeyL")&&this._leaveRoom(),this._input.left=d.input.KeyListener.isDown("KeyA"),this._input.right=d.input.KeyListener.isDown("KeyD"),this._input.up=d.input.KeyListener.isDown("KeyW"),this._input.down=d.input.KeyListener.isDown("KeyS"),this._input.jump=d.input.KeyListener.isPressed("Space")}_joinRoom(){this.getComponent("client")._channelClient.joinRoom(ne)}_leaveRoom(){this.getComponent("client")._channelClient.leaveRoom()}_createRoom(){this._entity._scene.createEntity("server").addComponent("server",new xi({room:ne,host:re,refreshRate:oe})),this._roomCreated=!0}},yt=class extends d.Component{update(e){let i=this._entity._scene.getEntityByName("player");this._entity.transform.position.lerp(i.transform.position,Math.min(e*4,1));let s=this._entity._scene.getEntityByName("levelMap").getComponent("tilemap"),r=this._entity.getComponent("camera").getBoundingRect();r.x+r.width>s.tilemap.width*s.tilemap.tilewidth?this._entity.transform.position.x=s.tilemap.width*s.tilemap.tilewidth-r.width/2:r.x<0&&(this._entity.transform.position.x=r.width/2),r.y+r.height>s.tilemap.height*s.tilemap.tileheight?this._entity.transform.position.y=s.tilemap.height*s.tilemap.tileheight-r.height/2:r.y<0&&(this._entity.transform.position.y=r.height/2)}},vt=class extends d.Scene{init(){this.remotePlayers=[],this.camera.main._entity.addComponent("controller",new yt),this.camera.main._entity.transform.scale.set(4,4);let e=d.utils.Store.get("tilemap"),i=this.createEntity("levelMap");i.addComponent("tilemap",new d.graphics.OrthogonalMap(e)),i.addComponent("tilemapRenderer",new d.graphics.OrthogonalMapRenderer({tilemap:e,tilesets:{bat:A.getImage("bat"),"environment-tiles":A.getImage("tileset")},camera:this.camera.main})),i.registerHandler("tilemapObject",s=>{let n=s.object;switch(n.name){case"player":{let r=this.createPlayer(!1,s.layer.zIndex);this.player=r,r.transform.position.set(n.x,n.y),r.addComponent("Serializer",new _t),r.addComponent("client",new bi({host:re,refreshRate:oe})),r.registerHandler("connect",()=>{this.onPlayerConnect()}),r.registerHandler("disconnect",()=>{this.onPlayerDisconnect()}),r.registerHandler("data",o=>{this.onPlayerData(o.data)}),r.registerHandler("join",o=>{if(o.socketId==r.getComponent("controller").socketId)return;let a=this.createPlayer(!0);a.getComponent("controller").socketId=o.socketId}),r.registerHandler("leave",o=>{let a=this.remotePlayers.find(h=>h.getComponent("controller").socketId==o.socketId);this.removeEntity(a),this.remotePlayers.splice(this.remotePlayers.indexOf(a),1)});break}}})}onPlayerConnect(){let e=this.player.getComponent("client")._channelClient.signalServer.socket.id;this.player.getComponent("controller").socketId=e}onPlayerDisconnect(){for(let e of this.remotePlayers)this.removeEntity(e);this.remotePlayers.length=0}onPlayerData(e){for(let i of e){if(i.socketId==this.player.getComponent("controller").socketId)continue;let s=this.remotePlayers.find(n=>n.getComponent("controller").socketId==i.socketId);if(s||(s=this.createPlayer(!0),s.getComponent("controller").socketId=i.socketId),i.data){let n=s.getComponent("controller");s.transform.position.copy(i.data.position),n._input=i.data.input,n._velocity.copy(i.data.velocity),n._grounded=i.data.grounded,n._climbing=i.data.climbing}}}createPlayer(e){let i=e?this.createEntity():this.createEntity("player");return i.addComponent("sprite",new d.graphics.AnimatedSpriteDrawable({sprite:new d.graphics.Sprite(A.getTexture("player")),size:new R(f,f),offset:new R,zIndex:2,camera:this.camera.main})),i.addComponent("collider",new d.geometry.Collider({offset:new R,shape:new d.geometry.shape.Rect(10,16)})),i.addComponent("controller",new mt({remote:e})),e&&this.remotePlayers.push(i),i}};d.Lancelot.init({container:document.body,width:960,height:540,scene:new vt,sceneParams:{},viewportMode:"fit",async preload(){A.addImage("bat",await ft("assets/bat.png")),A.addImage("tileset",await ft("assets/environment-tiles_extruded.png")),A.addImage("player",await ft("assets/player.png"));let t=await d.graphics.tilemap.Tilemap.loadFromJson("assets/test1.tmj",{"environment-tiles":"assets/environment-tiles.tsj"});d.utils.Store.set("tilemap",t),d.graphics.Animations.create("bat.fly",[{x:0,y:0,duration:.08},{x:1,y:0,duration:.08},{x:2,y:0,duration:.08},{x:3,y:0,duration:.08}],16,16,0,0),d.graphics.Animations.create("player.run",[{x:0,y:0,duration:.16},{x:1,y:0,duration:.16},{x:2,y:0,duration:.16},{x:1,y:0,duration:.16}],16,16,0,0),d.graphics.Animations.create("player.idle",[{x:1,y:1,duration:.16}],16,16,0,0),d.graphics.Animations.create("player.jump",[{x:0,y:1,duration:.16}],16,16,0,0),d.graphics.Animations.create("player.climb",[{x:4,y:0,duration:.16},{x:4,y:1,duration:.16}],16,16,0,0),A.createTexture("bat",A.getImage("bat"),{anim:d.graphics.Animations.get("bat.fly")},!0),A.createTexture("player",A.getImage("player"),{},!1)}});})();
+`;
+    class SpriteBatch {
+      static MAX_SPRITES = 1e4;
+      static VSIZE = 8;
+      static vertices = [
+        -0.5,
+        -0.5,
+        0.5,
+        -0.5,
+        0.5,
+        0.5,
+        -0.5,
+        0.5
+      ];
+      /**
+       * @type {WebGL2RenderingContext}
+       */
+      _gl;
+      constructor(gl) {
+        this._gl = gl;
+        this._sprites = [];
+        this._drawCalls = [];
+      }
+      start() {
+        this._vao = this._gl.createVertexArray();
+        this._gl.bindVertexArray(this._vao);
+        this._vbo = this._gl.createBuffer();
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this._vbo);
+        this._ebo = this._gl.createBuffer();
+        this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this._ebo);
+        const indices = [];
+        for (let i = 0; i < SpriteBatch.MAX_SPRITES; ++i) {
+          indices.push(
+            i * 4,
+            i * 4 + 1,
+            i * 4 + 2,
+            i * 4,
+            i * 4 + 2,
+            i * 4 + 3
+          );
+        }
+        this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), this._gl.STATIC_DRAW);
+        this._gl.vertexAttribPointer(0, 2, this._gl.FLOAT, false, SpriteBatch.VSIZE * 4, 0 * 4);
+        this._gl.vertexAttribPointer(1, 2, this._gl.FLOAT, false, SpriteBatch.VSIZE * 4, 2 * 4);
+        this._gl.vertexAttribPointer(2, 4, this._gl.FLOAT, false, SpriteBatch.VSIZE * 4, 4 * 4);
+        this._gl.bindVertexArray(null);
+      }
+      destroy() {
+        this._gl.deleteBuffer(this._vao);
+        this._gl.deleteBuffer(this._ebo);
+        this._gl.deleteVertexArray(this._vao);
+      }
+      isFull() {
+        return this._sprites.length == SpriteBatch.MAX_SPRITES;
+      }
+      add(sprite) {
+        this._sprites.push(sprite);
+      }
+      remove(sprite) {
+        let idx = this._sprites.indexOf(sprite);
+        if (idx != -1) {
+          this._sprites.splice(idx, 1);
+          return true;
+        }
+        return false;
+      }
+      initBuffer() {
+        const vertices = [];
+        this._drawCalls = [];
+        this._sprites.sort((a, b) => {
+          return a.sprite.texture.id - b.sprite.texture.id;
+        });
+        for (let s of this._sprites) {
+          const { sprite, x, y, sx, sy, angle } = s;
+          if (this._drawCalls.length == 0 || this._drawCalls[this._drawCalls.length - 1].texture.id != sprite.texture.id) {
+            const c = {
+              offset: vertices.length / SpriteBatch.VSIZE,
+              count: 4,
+              texture: sprite.texture
+            };
+            this._drawCalls.push(c);
+          } else {
+            this._drawCalls[this._drawCalls.length - 1].count += 4;
+          }
+          for (let i = 0; i < 4; ++i) {
+            let pos = new Vector(SpriteBatch.vertices[i * 2] * sx, SpriteBatch.vertices[i * 2 + 1] * sy);
+            pos.rot(angle);
+            pos.x += x;
+            pos.y += y;
+            vertices.push(pos.x, pos.y, sprite.coords[i * 2], sprite.coords[i * 2 + 1], ...sprite.color);
+          }
+        }
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this._vbo);
+        this._gl.bufferData(this._gl.ARRAY_BUFFER, new Float32Array(vertices), this._gl.STATIC_DRAW);
+      }
+      draw() {
+        this._gl.bindVertexArray(this._vao);
+        this._gl.enableVertexAttribArray(0);
+        this._gl.enableVertexAttribArray(1);
+        this._gl.enableVertexAttribArray(2);
+        for (let c of this._drawCalls) {
+          c.texture.bind();
+          this._gl.drawElements(this._gl.TRIANGLES, c.count / 4 * 6, this._gl.UNSIGNED_SHORT, c.offset / 4 * 6 * 2);
+        }
+        this._gl.disableVertexAttribArray(2);
+        this._gl.bindVertexArray(null);
+      }
+    }
+    class Renderer {
+      /**
+       * @type {WebGL2RenderingContext}
+       */
+      _gl;
+      constructor(gl) {
+        this._gl = gl;
+        this._batches = [];
+        this._spriteShader = new Shader(this._gl, spriteVertexSource, spriteFragmentSource, [
+          ["projectionViewM", "mat4"],
+          ["ambientColor", "vec4"]
+        ]);
+        this._debugDraw = new debugDraw.DebugDraw(this._gl);
+        this._textRenderer = new textRenderer.TextRenderer(this._gl);
+      }
+      get debugDraw() {
+        return this._debugDraw;
+      }
+      get textRenderer() {
+        return this._textRenderer;
+      }
+      start() {
+        this._spriteShader.start();
+        this._debugDraw.start();
+        this._textRenderer.start();
+      }
+      destroy() {
+        for (let batch of this._batches) {
+          this._removeBatch(batch);
+        }
+        this._spriteShader.destroy();
+      }
+      add(renderObject) {
+        let batch = this._batches.find((b) => !b.locked && b.zIndex == renderObject.zIndex && b.fixed == renderObject.fixed && b.camera == renderObject.camera && !b.spriteBatch.isFull());
+        if (!batch) {
+          batch = this._createBatch(renderObject.zIndex, renderObject.fixed, renderObject.camera, false);
+        }
+        batch.spriteBatch.add(renderObject);
+        batch.needsUpdate = true;
+      }
+      remove(renderObject) {
+        for (let batch of this._batches) {
+          if (batch.spriteBatch.remove(renderObject)) {
+            batch.needsUpdate = true;
+          }
+        }
+      }
+      render() {
+        this._spriteShader.bind();
+        this._gl.viewport(0, 0, this._gl.canvas.width, this._gl.canvas.height);
+        this._gl.clearColor(0, 0, 0, 1);
+        this._gl.clear(this._gl.COLOR_BUFFER_BIT);
+        this._batches.sort((a, b) => a.zIndex - b.zIndex);
+        for (let batch of this._batches) {
+          if (batch.needsUpdate) {
+            batch.needsUpdate = !batch.fixed;
+            batch.spriteBatch.initBuffer();
+          }
+          batch.camera.begin(this._gl);
+          this._spriteShader.supplyUniform("projectionViewM", batch.camera.projectionView);
+          this._spriteShader.supplyUniform("ambientColor", batch.ambientColor);
+          batch.spriteBatch.draw();
+        }
+        this._debugDraw.beginFrame();
+        this._debugDraw.draw();
+        this._textRenderer.draw();
+      }
+      _createBatch(zIndex, fixed, camera2, locked) {
+        const spriteBatch = new SpriteBatch(this._gl);
+        spriteBatch.start();
+        const batch = {
+          zIndex,
+          fixed,
+          camera: camera2,
+          locked,
+          spriteBatch,
+          needsUpdate: true,
+          ambientColor: [1, 1, 1, 1]
+        };
+        this._batches.push(batch);
+        return batch;
+      }
+      _removeBatch(batch) {
+        let idx = this._batches.indexOf(batch);
+        if (idx != -1) {
+          this._batches.splice(idx, 1);
+          batch.spriteBatch.destroy();
+        }
+      }
+    }
+    return {
+      Renderer,
+      SpriteBatch
+      //createCanvasShader
+    };
+  }();
+  var assets = /* @__PURE__ */ function() {
+    const loadImage2 = (src) => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          resolve(img);
+        };
+        img.onerror = () => {
+          reject();
+        };
+      });
+    };
+    const loadJson = async (src) => {
+      const response = await fetch(src);
+      const data = await response.json();
+      return data;
+    };
+    class AssetsManager2 {
+      static _images = /* @__PURE__ */ new Map();
+      static _jsons = /* @__PURE__ */ new Map();
+      static _textures = /* @__PURE__ */ new Map();
+      static _shaders = /* @__PURE__ */ new Map();
+      static getImage(name) {
+        return this._images.get(name);
+      }
+      static addImage(name, image) {
+        this._images.set(name, image);
+      }
+      static getJson(name) {
+        return this._jsons.get(name);
+      }
+      static addJson(name, json) {
+        this._jsons.set(name, json);
+      }
+      static getTexture(name) {
+        return this._textures.get(name);
+      }
+      static createTexture(name, data, params, animated) {
+        const gl = lancelot.Lancelot._get()._canvas.context;
+        let tex;
+        if (animated) {
+          tex = new texture.AnimatedTexture(gl, data, params);
+        } else {
+          tex = new texture.Texture(gl, data, params);
+        }
+        this._textures.set(name, tex);
+        return tex;
+      }
+      static getShader(name) {
+        return this._shaders.get(name);
+      }
+      static createShader(name, uniforms, getColor) {
+        const gl = lancelot.Lancelot._get()._canvas.context;
+        this._shaders.set(name, renderer.createCanvasShader(gl, uniforms, getColor));
+      }
+    }
+    return {
+      loadImage: loadImage2,
+      loadJson,
+      AssetsManager: AssetsManager2
+    };
+  }();
+  var tilemap = /* @__PURE__ */ function() {
+    class Tile {
+      constructor(x, y, tileset, animation, properties) {
+        this.x = x;
+        this.y = y;
+        this.tileset = tileset;
+        this.animation = animation;
+        this.properties = properties;
+      }
+      get id() {
+        return this.tileset.name + "[" + this.x + ";" + this.y + "]";
+      }
+      getProperty(name) {
+        let prop = this.properties.find((e) => e.name == name);
+        if (prop) {
+          return prop.value;
+        }
+        return null;
+      }
+    }
+    class Tileset {
+      static _cache = /* @__PURE__ */ new Map();
+      static async getOrLoadFromJson(filename) {
+        if (this._cache.has(filename)) {
+          return this._cache.get(filename);
+        }
+        let data = await assets.loadJson(filename);
+        let tileset = new Tileset(data);
+        this._cache.set(filename, tileset);
+        return tileset;
+      }
+      constructor(params, image) {
+        this._params = params;
+        this._image = image;
+      }
+      get name() {
+        return this._params.name;
+      }
+      get tilecount() {
+        return this._params.tilecount;
+      }
+      get tilewidth() {
+        return this._params.tilewidth;
+      }
+      get tileheight() {
+        return this._params.tileheight;
+      }
+      get margin() {
+        return this._params.margin;
+      }
+      get spacing() {
+        return this._params.spacing;
+      }
+      getTileByIndex(idx) {
+        if (idx >= this._params.tilecount || idx < 0) {
+          return null;
+        }
+        const tileData = this._params.tiles.find((e) => e.id == idx) || {};
+        return new Tile(
+          idx % this._params.columns,
+          ~~(idx / this._params.columns),
+          this,
+          tileData.animation || null,
+          tileData.properties || []
+        );
+      }
+    }
+    class Layer {
+      constructor(params) {
+        this._tilemap = null;
+        this._params = params;
+        this._opacity = params.opacity;
+      }
+      get name() {
+        return this._params.name;
+      }
+      get width() {
+        return this._params.width;
+      }
+      get height() {
+        return this._params.height;
+      }
+      get x() {
+        return this._params.x;
+      }
+      get y() {
+        return this._params.y;
+      }
+      get type() {
+        return this._params.type;
+      }
+      get zIndex() {
+        return this._tilemap.getLayers().indexOf(this);
+      }
+      get opacity() {
+        return this._opacity;
+      }
+      set opacity(value2) {
+        this._opacity = value2;
+      }
+    }
+    class TileLayer extends Layer {
+      getTile(x, y) {
+        const tileId = this._params.data[y * this._params.width + x];
+        if (tileId - 1 == -1) {
+          return null;
+        }
+        return this._tilemap.getTileById(tileId);
+      }
+    }
+    class ObjectLayer extends Layer {
+      getObjects() {
+        return this._params.objects;
+      }
+    }
+    class Tilemap {
+      static async loadFromJson(filename, tilesetSources) {
+        let data = await assets.loadJson(filename);
+        let tilemap2 = new Tilemap(
+          data.width,
+          data.height,
+          data.tilewidth,
+          data.tileheight
+        );
+        for (let layer of data.layers) {
+          switch (layer.type) {
+            case "tilelayer":
+              tilemap2.addLayer(new TileLayer(layer));
+              break;
+            case "objectgroup":
+              tilemap2.addLayer(new ObjectLayer(layer));
+              break;
+          }
+        }
+        for (let tilesetData of data.tilesets) {
+          let tileset;
+          if (tilesetData.source) {
+            const tokens = tilesetData.source.split(/(\/|\\\/)/);
+            const tilesetName = tokens[tokens.length - 1].split(".tsj")[0];
+            tileset = await Tileset.getOrLoadFromJson(tilesetSources[tilesetName]);
+          } else {
+            tileset = new Tileset(tilesetData);
+          }
+          tilemap2.addTileset(tileset, tilesetData.firstgid);
+        }
+        return tilemap2;
+      }
+      constructor(width, height, tilewidth, tileheight) {
+        this._width = width;
+        this._height = height;
+        this._tilewidth = tilewidth;
+        this._tileheight = tileheight;
+        this._tilesets = [];
+        this._layers = [];
+      }
+      get width() {
+        return this._width;
+      }
+      get height() {
+        return this._height;
+      }
+      get tilewidth() {
+        return this._tilewidth;
+      }
+      get tileheight() {
+        return this._tileheight;
+      }
+      addLayer(layer) {
+        layer._tilemap = this;
+        this._layers.push(layer);
+      }
+      addTileset(tileset, firstgid) {
+        this._tilesets.push({
+          tileset,
+          firstgid
+        });
+      }
+      getTilesets() {
+        return this._tilesets.map((e) => e.tileset);
+      }
+      getLayers() {
+        return this._layers;
+      }
+      getLayerByName(name) {
+        return this._layers.find((e) => e.name == name) || null;
+      }
+      getTileById(id) {
+        const tilesets = this._tilesets;
+        for (let tileset of tilesets) {
+          let tile = tileset.tileset.getTileByIndex(id - tileset.firstgid);
+          if (tile) {
+            return tile;
+          }
+        }
+        return null;
+      }
+    }
+    return {
+      Tileset,
+      Layer,
+      TileLayer,
+      ObjectLayer,
+      Tilemap
+    };
+  }();
+  var index_exports2 = {};
+  __export(index_exports2, {
+    Store: () => Store,
+    assets: () => assets
+  });
+  var Store = class {
+    static _store = {};
+    static get(name) {
+      return this._store[name];
+    }
+    static set(name, data) {
+      this._store[name] = data;
+    }
+  };
+  var index_exports3 = {};
+  __export(index_exports3, {
+    Matrix: () => Matrix,
+    Vector: () => Vector,
+    math: () => math
+  });
+  var math = /* @__PURE__ */ function() {
+    return {
+      clamp(x, a, b) {
+        return Math.min(Math.max(x, a), b);
+      },
+      sat(x) {
+        return Math.min(Math.max(x, 0), 1);
+      },
+      lerp(a, b, x) {
+        return a + (b - a) * x;
+      },
+      map(a1, b1, a0, b0, x) {
+        return a1 + (b1 - a1) * (x - a0) / (b0 - a0);
+      },
+      degToRad(deg) {
+        return deg / 180 * Math.PI;
+      },
+      radToDeg(rad) {
+        return rad / Math.PI * 180;
+      },
+      randInt(min, max) {
+        return ~~(Math.random() * (max - min + 1) + min);
+      }
+    };
+  }();
+  var Matrix = class {
+    static create() {
+      return [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ];
+    }
+    static identity(out) {
+      out[0] = 1;
+      out[1] = 0;
+      out[2] = 0;
+      out[3] = 0;
+      out[4] = 0;
+      out[5] = 1;
+      out[6] = 0;
+      out[7] = 0;
+      out[8] = 0;
+      out[9] = 0;
+      out[10] = 1;
+      out[11] = 0;
+      out[12] = 0;
+      out[13] = 0;
+      out[14] = 0;
+      out[15] = 1;
+      return out;
+    }
+    static ortho(out, left, right, bottom, top, near, far) {
+      let lr = 1 / (left - right);
+      let bt = 1 / (bottom - top);
+      let nf = 1 / (near - far);
+      out[0] = -2 * lr;
+      out[1] = 0;
+      out[2] = 0;
+      out[3] = 0;
+      out[4] = 0;
+      out[5] = -2 * bt;
+      out[6] = 0;
+      out[7] = 0;
+      out[8] = 0;
+      out[9] = 0;
+      out[10] = 2 * nf;
+      out[11] = 0;
+      out[12] = (left + right) * lr;
+      out[13] = (top + bottom) * bt;
+      out[14] = (far + near) * nf;
+      out[15] = 1;
+      return out;
+    }
+    static multiply(out, a, b) {
+      let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+      let a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+      let a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+      let a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+      let b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+      out[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+      out[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+      out[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+      out[3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+      b0 = b[4];
+      b1 = b[5];
+      b2 = b[6];
+      b3 = b[7];
+      out[4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+      out[5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+      out[6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+      out[7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+      b0 = b[8];
+      b1 = b[9];
+      b2 = b[10];
+      b3 = b[11];
+      out[8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+      out[9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+      out[10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+      out[11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+      b0 = b[12];
+      b1 = b[13];
+      b2 = b[14];
+      b3 = b[15];
+      out[12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+      out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+      out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+      out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+      return out;
+    }
+  };
+  var index_exports4 = {};
+  __export(index_exports4, {
+    KeyListener: () => KeyListener
+  });
+  var KeyListener = class _KeyListener {
+    static _instance = null;
+    static _get() {
+      if (this._instance == null) {
+        this._instance = new _KeyListener();
+      }
+      return this._instance;
+    }
+    constructor() {
+      this._prevKeysDown = /* @__PURE__ */ new Set();
+      this._keysDown = /* @__PURE__ */ new Set();
+      this._keysPressed = /* @__PURE__ */ new Set();
+      this._keysReleased = /* @__PURE__ */ new Set();
+    }
+    start() {
+      addEventListener("keydown", (e) => this._onKeyDown(e.code));
+      addEventListener("keyup", (e) => this._onKeyUp(e.code));
+    }
+    static isDown(key) {
+      return this._get()._keysDown.has(key);
+    }
+    static isPressed(key) {
+      return this._get()._keysPressed.has(key);
+    }
+    static isReleased(key) {
+      return this._get()._keysReleased.has(key);
+    }
+    update() {
+      this._keysPressed.clear();
+      this._keysReleased.clear();
+      this._keysDown.forEach((key) => {
+        if (!this._prevKeysDown.has(key)) {
+          this._keysPressed.add(key);
+        }
+      });
+      this._prevKeysDown.forEach((key) => {
+        if (!this._keysDown.has(key)) {
+          this._keysReleased.add(key);
+        }
+      });
+      this._prevKeysDown = new Set(this._keysDown);
+    }
+    _onKeyDown(keyCode) {
+      this._keysDown.add(keyCode);
+    }
+    _onKeyUp(keyCode) {
+      this._keysDown.delete(keyCode);
+    }
+  };
+  var index_exports5 = {};
+  __export(index_exports5, {
+    Collider: () => Collider,
+    shape: () => shape
+  });
+  var shape = /* @__PURE__ */ function() {
+    class Shape {
+      constructor() {
+        this.x = 0;
+        this.y = 0;
+      }
+      setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+      }
+    }
+    class Rect extends Shape {
+      constructor(w, h) {
+        super();
+        this.width = w;
+        this.height = h;
+      }
+      getLeft() {
+        return this.x - this.width / 2;
+      }
+      getRight() {
+        return this.x + this.width / 2;
+      }
+      getTop() {
+        return this.y - this.height / 2;
+      }
+      getBottom() {
+        return this.y + this.height / 2;
+      }
+      intersects(shape2) {
+        if (shape2 instanceof Rect) {
+          return Math.abs(this.x - shape2.x) < (this.width + shape2.width) / 2 && Math.abs(this.y - shape2.y) < (this.height + shape2.height) / 2;
+        }
+      }
+      clone() {
+        let rect = new Rect(this.width, this.height);
+        rect.setPosition(this.x, this.y);
+        return rect;
+      }
+    }
+    return {
+      Shape,
+      Rect
+    };
+  }();
+  var Collider = class extends Component {
+    constructor(params) {
+      super();
+      this._position = new Vector();
+      this._offset = params.offset;
+      this._shape = params.shape;
+    }
+    get shape() {
+      return this._shape;
+    }
+    getPosition() {
+      return this._position.clone();
+    }
+    setPosition(p) {
+      this._position.copy(p);
+      this._shape.setPosition(
+        p.x + this._offset.x,
+        p.y + this._offset.y
+      );
+    }
+  };
+  var index_exports6 = {};
+  __export(index_exports6, {
+    ChannelClientController: () => ChannelClientController,
+    ChannelServerController: () => ChannelServerController
+  });
+  var Channel = class {
+    channel;
+    ready;
+    onConnect;
+    onDisconnect;
+    onMessage;
+    constructor(channel) {
+      this.channel = channel;
+      this.ready = false;
+    }
+    init() {
+      this.channel.onmessage = (e) => {
+        if (this.onMessage) {
+          this.onMessage(e.data);
+        }
+      };
+      this.channel.onopen = () => {
+        this.handleChannelStateChange();
+      };
+      this.channel.onclose = () => {
+        this.handleChannelStateChange();
+      };
+    }
+    send(data) {
+      if (this.ready) {
+        this.channel.send(data);
+      } else {
+        console.warn("Channel: Trying to send data but channel is not ready");
+      }
+    }
+    handleChannelStateChange() {
+      const state = this.channel.readyState;
+      if (state == "open") {
+        this.ready = true;
+        if (this.onConnect) {
+          this.onConnect();
+        }
+      } else {
+        this.ready = false;
+        if (this.onDisconnect) {
+          this.onDisconnect();
+        }
+      }
+    }
+  };
+  var ChannelClient = class {
+    serverRoom;
+    signalServer;
+    rtcConfig;
+    remoteConnection;
+    channel;
+    onConnect;
+    onDisconnect;
+    onMessage;
+    constructor(signalServer, rtcConfig) {
+      this.signalServer = signalServer;
+      this.rtcConfig = rtcConfig;
+      this.channel = new Channel();
+      this.serverRoom = null;
+      signalServer.onMessage = (from, message) => {
+        console.log("Client: Message type " + message.type + " received [" + this.signalServer.socket.id + "]");
+        switch (message.type) {
+          case "offer":
+            this.handleOffer(from, message.offer);
+            break;
+          case "candidate":
+            this.remoteConnection.addIceCandidate(message.candidate);
+            break;
+        }
+      };
+      this.channel.onConnect = () => {
+        console.log("Client: Connected to the channel [" + signalServer.socket.id + "]");
+        if (this.onConnect) {
+          this.onConnect(this);
+        }
+      };
+      this.channel.onDisconnect = () => {
+        console.log("Client: Disconnected from the channel [" + signalServer.socket.id + "]");
+        if (this.onDisconnect) {
+          this.onDisconnect(this);
+        }
+      };
+      this.channel.onMessage = (data) => {
+        if (this.onMessage) {
+          this.onMessage(this, data);
+        }
+      };
+    }
+    joinRoom(room) {
+      this.serverRoom = room;
+      this.signalServer.joinRoom(room);
+    }
+    leaveRoom() {
+      if (this.serverRoom) {
+        this.signalServer.leaveRoom(this.serverRoom);
+        this.serverRoom = null;
+      }
+      if (this.remoteConnection) {
+        this.remoteConnection.close();
+      }
+    }
+    connect() {
+      this.signalServer.start();
+    }
+    handleOffer(from, offer) {
+      const remoteConnection = new RTCPeerConnection(this.rtcConfig);
+      remoteConnection.onicecandidate = (e) => {
+        this.signalServer.sendMessage(from, {
+          type: "candidate",
+          candidate: e.candidate
+        });
+      };
+      remoteConnection.ondatachannel = (e) => {
+        this.channel.channel = e.channel;
+        this.channel.init();
+      };
+      remoteConnection.setRemoteDescription(offer).then(() => remoteConnection.createAnswer()).then((answer) => remoteConnection.setLocalDescription(answer)).then(() => {
+        this.signalServer.sendMessage(from, {
+          type: "answer",
+          answer: remoteConnection.localDescription
+        });
+      });
+      this.remoteConnection = remoteConnection;
+    }
+  };
+  var PACKET_TYPES = /* @__PURE__ */ Object.create(null);
+  PACKET_TYPES["open"] = "0";
+  PACKET_TYPES["close"] = "1";
+  PACKET_TYPES["ping"] = "2";
+  PACKET_TYPES["pong"] = "3";
+  PACKET_TYPES["message"] = "4";
+  PACKET_TYPES["upgrade"] = "5";
+  PACKET_TYPES["noop"] = "6";
+  var PACKET_TYPES_REVERSE = /* @__PURE__ */ Object.create(null);
+  Object.keys(PACKET_TYPES).forEach((key) => {
+    PACKET_TYPES_REVERSE[PACKET_TYPES[key]] = key;
+  });
+  var ERROR_PACKET = { type: "error", data: "parser error" };
+  var withNativeBlob = typeof Blob === "function" || typeof Blob !== "undefined" && Object.prototype.toString.call(Blob) === "[object BlobConstructor]";
+  var withNativeArrayBuffer = typeof ArrayBuffer === "function";
+  var isView = (obj) => {
+    return typeof ArrayBuffer.isView === "function" ? ArrayBuffer.isView(obj) : obj && obj.buffer instanceof ArrayBuffer;
+  };
+  var encodePacket = ({ type, data }, supportsBinary, callback) => {
+    if (withNativeBlob && data instanceof Blob) {
+      if (supportsBinary) {
+        return callback(data);
+      } else {
+        return encodeBlobAsBase64(data, callback);
+      }
+    } else if (withNativeArrayBuffer && (data instanceof ArrayBuffer || isView(data))) {
+      if (supportsBinary) {
+        return callback(data);
+      } else {
+        return encodeBlobAsBase64(new Blob([data]), callback);
+      }
+    }
+    return callback(PACKET_TYPES[type] + (data || ""));
+  };
+  var encodeBlobAsBase64 = (data, callback) => {
+    const fileReader = new FileReader();
+    fileReader.onload = function() {
+      const content = fileReader.result.split(",")[1];
+      callback("b" + (content || ""));
+    };
+    return fileReader.readAsDataURL(data);
+  };
+  function toArray(data) {
+    if (data instanceof Uint8Array) {
+      return data;
+    } else if (data instanceof ArrayBuffer) {
+      return new Uint8Array(data);
+    } else {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+  }
+  var TEXT_ENCODER;
+  function encodePacketToBinary(packet, callback) {
+    if (withNativeBlob && packet.data instanceof Blob) {
+      return packet.data.arrayBuffer().then(toArray).then(callback);
+    } else if (withNativeArrayBuffer && (packet.data instanceof ArrayBuffer || isView(packet.data))) {
+      return callback(toArray(packet.data));
+    }
+    encodePacket(packet, false, (encoded) => {
+      if (!TEXT_ENCODER) {
+        TEXT_ENCODER = new TextEncoder();
+      }
+      callback(TEXT_ENCODER.encode(encoded));
+    });
+  }
+  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var lookup = typeof Uint8Array === "undefined" ? [] : new Uint8Array(256);
+  for (let i = 0; i < chars.length; i++) {
+    lookup[chars.charCodeAt(i)] = i;
+  }
+  var decode = (base64) => {
+    let bufferLength = base64.length * 0.75, len = base64.length, i, p = 0, encoded1, encoded2, encoded3, encoded4;
+    if (base64[base64.length - 1] === "=") {
+      bufferLength--;
+      if (base64[base64.length - 2] === "=") {
+        bufferLength--;
+      }
+    }
+    const arraybuffer = new ArrayBuffer(bufferLength), bytes = new Uint8Array(arraybuffer);
+    for (i = 0; i < len; i += 4) {
+      encoded1 = lookup[base64.charCodeAt(i)];
+      encoded2 = lookup[base64.charCodeAt(i + 1)];
+      encoded3 = lookup[base64.charCodeAt(i + 2)];
+      encoded4 = lookup[base64.charCodeAt(i + 3)];
+      bytes[p++] = encoded1 << 2 | encoded2 >> 4;
+      bytes[p++] = (encoded2 & 15) << 4 | encoded3 >> 2;
+      bytes[p++] = (encoded3 & 3) << 6 | encoded4 & 63;
+    }
+    return arraybuffer;
+  };
+  var withNativeArrayBuffer2 = typeof ArrayBuffer === "function";
+  var decodePacket = (encodedPacket, binaryType) => {
+    if (typeof encodedPacket !== "string") {
+      return {
+        type: "message",
+        data: mapBinary(encodedPacket, binaryType)
+      };
+    }
+    const type = encodedPacket.charAt(0);
+    if (type === "b") {
+      return {
+        type: "message",
+        data: decodeBase64Packet(encodedPacket.substring(1), binaryType)
+      };
+    }
+    const packetType = PACKET_TYPES_REVERSE[type];
+    if (!packetType) {
+      return ERROR_PACKET;
+    }
+    return encodedPacket.length > 1 ? {
+      type: PACKET_TYPES_REVERSE[type],
+      data: encodedPacket.substring(1)
+    } : {
+      type: PACKET_TYPES_REVERSE[type]
+    };
+  };
+  var decodeBase64Packet = (data, binaryType) => {
+    if (withNativeArrayBuffer2) {
+      const decoded = decode(data);
+      return mapBinary(decoded, binaryType);
+    } else {
+      return { base64: true, data };
+    }
+  };
+  var mapBinary = (data, binaryType) => {
+    switch (binaryType) {
+      case "blob":
+        if (data instanceof Blob) {
+          return data;
+        } else {
+          return new Blob([data]);
+        }
+      case "arraybuffer":
+      default:
+        if (data instanceof ArrayBuffer) {
+          return data;
+        } else {
+          return data.buffer;
+        }
+    }
+  };
+  var SEPARATOR = String.fromCharCode(30);
+  var encodePayload = (packets, callback) => {
+    const length = packets.length;
+    const encodedPackets = new Array(length);
+    let count = 0;
+    packets.forEach((packet, i) => {
+      encodePacket(packet, false, (encodedPacket) => {
+        encodedPackets[i] = encodedPacket;
+        if (++count === length) {
+          callback(encodedPackets.join(SEPARATOR));
+        }
+      });
+    });
+  };
+  var decodePayload = (encodedPayload, binaryType) => {
+    const encodedPackets = encodedPayload.split(SEPARATOR);
+    const packets = [];
+    for (let i = 0; i < encodedPackets.length; i++) {
+      const decodedPacket = decodePacket(encodedPackets[i], binaryType);
+      packets.push(decodedPacket);
+      if (decodedPacket.type === "error") {
+        break;
+      }
+    }
+    return packets;
+  };
+  function createPacketEncoderStream() {
+    return new TransformStream({
+      transform(packet, controller) {
+        encodePacketToBinary(packet, (encodedPacket) => {
+          const payloadLength = encodedPacket.length;
+          let header;
+          if (payloadLength < 126) {
+            header = new Uint8Array(1);
+            new DataView(header.buffer).setUint8(0, payloadLength);
+          } else if (payloadLength < 65536) {
+            header = new Uint8Array(3);
+            const view = new DataView(header.buffer);
+            view.setUint8(0, 126);
+            view.setUint16(1, payloadLength);
+          } else {
+            header = new Uint8Array(9);
+            const view = new DataView(header.buffer);
+            view.setUint8(0, 127);
+            view.setBigUint64(1, BigInt(payloadLength));
+          }
+          if (packet.data && typeof packet.data !== "string") {
+            header[0] |= 128;
+          }
+          controller.enqueue(header);
+          controller.enqueue(encodedPacket);
+        });
+      }
+    });
+  }
+  var TEXT_DECODER;
+  function totalLength(chunks) {
+    return chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  }
+  function concatChunks(chunks, size) {
+    if (chunks[0].length === size) {
+      return chunks.shift();
+    }
+    const buffer = new Uint8Array(size);
+    let j = 0;
+    for (let i = 0; i < size; i++) {
+      buffer[i] = chunks[0][j++];
+      if (j === chunks[0].length) {
+        chunks.shift();
+        j = 0;
+      }
+    }
+    if (chunks.length && j < chunks[0].length) {
+      chunks[0] = chunks[0].slice(j);
+    }
+    return buffer;
+  }
+  function createPacketDecoderStream(maxPayload, binaryType) {
+    if (!TEXT_DECODER) {
+      TEXT_DECODER = new TextDecoder();
+    }
+    const chunks = [];
+    let state = 0;
+    let expectedLength = -1;
+    let isBinary2 = false;
+    return new TransformStream({
+      transform(chunk, controller) {
+        chunks.push(chunk);
+        while (true) {
+          if (state === 0) {
+            if (totalLength(chunks) < 1) {
+              break;
+            }
+            const header = concatChunks(chunks, 1);
+            isBinary2 = (header[0] & 128) === 128;
+            expectedLength = header[0] & 127;
+            if (expectedLength < 126) {
+              state = 3;
+            } else if (expectedLength === 126) {
+              state = 1;
+            } else {
+              state = 2;
+            }
+          } else if (state === 1) {
+            if (totalLength(chunks) < 2) {
+              break;
+            }
+            const headerArray = concatChunks(chunks, 2);
+            expectedLength = new DataView(headerArray.buffer, headerArray.byteOffset, headerArray.length).getUint16(0);
+            state = 3;
+          } else if (state === 2) {
+            if (totalLength(chunks) < 8) {
+              break;
+            }
+            const headerArray = concatChunks(chunks, 8);
+            const view = new DataView(headerArray.buffer, headerArray.byteOffset, headerArray.length);
+            const n = view.getUint32(0);
+            if (n > Math.pow(2, 53 - 32) - 1) {
+              controller.enqueue(ERROR_PACKET);
+              break;
+            }
+            expectedLength = n * Math.pow(2, 32) + view.getUint32(4);
+            state = 3;
+          } else {
+            if (totalLength(chunks) < expectedLength) {
+              break;
+            }
+            const data = concatChunks(chunks, expectedLength);
+            controller.enqueue(decodePacket(isBinary2 ? data : TEXT_DECODER.decode(data), binaryType));
+            state = 0;
+          }
+          if (expectedLength === 0 || expectedLength > maxPayload) {
+            controller.enqueue(ERROR_PACKET);
+            break;
+          }
+        }
+      }
+    });
+  }
+  var protocol = 4;
+  function Emitter(obj) {
+    if (obj) return mixin(obj);
+  }
+  function mixin(obj) {
+    for (var key in Emitter.prototype) {
+      obj[key] = Emitter.prototype[key];
+    }
+    return obj;
+  }
+  Emitter.prototype.on = Emitter.prototype.addEventListener = function(event, fn) {
+    this._callbacks = this._callbacks || {};
+    (this._callbacks["$" + event] = this._callbacks["$" + event] || []).push(fn);
+    return this;
+  };
+  Emitter.prototype.once = function(event, fn) {
+    function on2() {
+      this.off(event, on2);
+      fn.apply(this, arguments);
+    }
+    on2.fn = fn;
+    this.on(event, on2);
+    return this;
+  };
+  Emitter.prototype.off = Emitter.prototype.removeListener = Emitter.prototype.removeAllListeners = Emitter.prototype.removeEventListener = function(event, fn) {
+    this._callbacks = this._callbacks || {};
+    if (0 == arguments.length) {
+      this._callbacks = {};
+      return this;
+    }
+    var callbacks = this._callbacks["$" + event];
+    if (!callbacks) return this;
+    if (1 == arguments.length) {
+      delete this._callbacks["$" + event];
+      return this;
+    }
+    var cb;
+    for (var i = 0; i < callbacks.length; i++) {
+      cb = callbacks[i];
+      if (cb === fn || cb.fn === fn) {
+        callbacks.splice(i, 1);
+        break;
+      }
+    }
+    if (callbacks.length === 0) {
+      delete this._callbacks["$" + event];
+    }
+    return this;
+  };
+  Emitter.prototype.emit = function(event) {
+    this._callbacks = this._callbacks || {};
+    var args = new Array(arguments.length - 1), callbacks = this._callbacks["$" + event];
+    for (var i = 1; i < arguments.length; i++) {
+      args[i - 1] = arguments[i];
+    }
+    if (callbacks) {
+      callbacks = callbacks.slice(0);
+      for (var i = 0, len = callbacks.length; i < len; ++i) {
+        callbacks[i].apply(this, args);
+      }
+    }
+    return this;
+  };
+  Emitter.prototype.emitReserved = Emitter.prototype.emit;
+  Emitter.prototype.listeners = function(event) {
+    this._callbacks = this._callbacks || {};
+    return this._callbacks["$" + event] || [];
+  };
+  Emitter.prototype.hasListeners = function(event) {
+    return !!this.listeners(event).length;
+  };
+  var nextTick = (() => {
+    const isPromiseAvailable = typeof Promise === "function" && typeof Promise.resolve === "function";
+    if (isPromiseAvailable) {
+      return (cb) => Promise.resolve().then(cb);
+    } else {
+      return (cb, setTimeoutFn) => setTimeoutFn(cb, 0);
+    }
+  })();
+  var globalThisShim = (() => {
+    if (typeof self !== "undefined") {
+      return self;
+    } else if (typeof window !== "undefined") {
+      return window;
+    } else {
+      return Function("return this")();
+    }
+  })();
+  var defaultBinaryType = "arraybuffer";
+  function createCookieJar() {
+  }
+  function pick(obj, ...attr) {
+    return attr.reduce((acc, k) => {
+      if (obj.hasOwnProperty(k)) {
+        acc[k] = obj[k];
+      }
+      return acc;
+    }, {});
+  }
+  var NATIVE_SET_TIMEOUT = globalThisShim.setTimeout;
+  var NATIVE_CLEAR_TIMEOUT = globalThisShim.clearTimeout;
+  function installTimerFunctions(obj, opts) {
+    if (opts.useNativeTimers) {
+      obj.setTimeoutFn = NATIVE_SET_TIMEOUT.bind(globalThisShim);
+      obj.clearTimeoutFn = NATIVE_CLEAR_TIMEOUT.bind(globalThisShim);
+    } else {
+      obj.setTimeoutFn = globalThisShim.setTimeout.bind(globalThisShim);
+      obj.clearTimeoutFn = globalThisShim.clearTimeout.bind(globalThisShim);
+    }
+  }
+  var BASE64_OVERHEAD = 1.33;
+  function byteLength(obj) {
+    if (typeof obj === "string") {
+      return utf8Length(obj);
+    }
+    return Math.ceil((obj.byteLength || obj.size) * BASE64_OVERHEAD);
+  }
+  function utf8Length(str) {
+    let c = 0, length = 0;
+    for (let i = 0, l = str.length; i < l; i++) {
+      c = str.charCodeAt(i);
+      if (c < 128) {
+        length += 1;
+      } else if (c < 2048) {
+        length += 2;
+      } else if (c < 55296 || c >= 57344) {
+        length += 3;
+      } else {
+        i++;
+        length += 4;
+      }
+    }
+    return length;
+  }
+  function randomString() {
+    return Date.now().toString(36).substring(3) + Math.random().toString(36).substring(2, 5);
+  }
+  function encode(obj) {
+    let str = "";
+    for (let i in obj) {
+      if (obj.hasOwnProperty(i)) {
+        if (str.length)
+          str += "&";
+        str += encodeURIComponent(i) + "=" + encodeURIComponent(obj[i]);
+      }
+    }
+    return str;
+  }
+  function decode2(qs) {
+    let qry = {};
+    let pairs = qs.split("&");
+    for (let i = 0, l = pairs.length; i < l; i++) {
+      let pair = pairs[i].split("=");
+      qry[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+    }
+    return qry;
+  }
+  var TransportError = class extends Error {
+    constructor(reason, description, context) {
+      super(reason);
+      this.description = description;
+      this.context = context;
+      this.type = "TransportError";
+    }
+  };
+  var Transport = class extends Emitter {
+    /**
+     * Transport abstract constructor.
+     *
+     * @param {Object} opts - options
+     * @protected
+     */
+    constructor(opts) {
+      super();
+      this.writable = false;
+      installTimerFunctions(this, opts);
+      this.opts = opts;
+      this.query = opts.query;
+      this.socket = opts.socket;
+      this.supportsBinary = !opts.forceBase64;
+    }
+    /**
+     * Emits an error.
+     *
+     * @param {String} reason
+     * @param description
+     * @param context - the error context
+     * @return {Transport} for chaining
+     * @protected
+     */
+    onError(reason, description, context) {
+      super.emitReserved("error", new TransportError(reason, description, context));
+      return this;
+    }
+    /**
+     * Opens the transport.
+     */
+    open() {
+      this.readyState = "opening";
+      this.doOpen();
+      return this;
+    }
+    /**
+     * Closes the transport.
+     */
+    close() {
+      if (this.readyState === "opening" || this.readyState === "open") {
+        this.doClose();
+        this.onClose();
+      }
+      return this;
+    }
+    /**
+     * Sends multiple packets.
+     *
+     * @param {Array} packets
+     */
+    send(packets) {
+      if (this.readyState === "open") {
+        this.write(packets);
+      } else {
+      }
+    }
+    /**
+     * Called upon open
+     *
+     * @protected
+     */
+    onOpen() {
+      this.readyState = "open";
+      this.writable = true;
+      super.emitReserved("open");
+    }
+    /**
+     * Called with data.
+     *
+     * @param {String} data
+     * @protected
+     */
+    onData(data) {
+      const packet = decodePacket(data, this.socket.binaryType);
+      this.onPacket(packet);
+    }
+    /**
+     * Called with a decoded packet.
+     *
+     * @protected
+     */
+    onPacket(packet) {
+      super.emitReserved("packet", packet);
+    }
+    /**
+     * Called upon close.
+     *
+     * @protected
+     */
+    onClose(details) {
+      this.readyState = "closed";
+      super.emitReserved("close", details);
+    }
+    /**
+     * Pauses the transport, in order not to lose packets during an upgrade.
+     *
+     * @param onPause
+     */
+    pause(onPause) {
+    }
+    createUri(schema, query = {}) {
+      return schema + "://" + this._hostname() + this._port() + this.opts.path + this._query(query);
+    }
+    _hostname() {
+      const hostname = this.opts.hostname;
+      return hostname.indexOf(":") === -1 ? hostname : "[" + hostname + "]";
+    }
+    _port() {
+      if (this.opts.port && (this.opts.secure && Number(this.opts.port !== 443) || !this.opts.secure && Number(this.opts.port) !== 80)) {
+        return ":" + this.opts.port;
+      } else {
+        return "";
+      }
+    }
+    _query(query) {
+      const encodedQuery = encode(query);
+      return encodedQuery.length ? "?" + encodedQuery : "";
+    }
+  };
+  var Polling = class extends Transport {
+    constructor() {
+      super(...arguments);
+      this._polling = false;
+    }
+    get name() {
+      return "polling";
+    }
+    /**
+     * Opens the socket (triggers polling). We write a PING message to determine
+     * when the transport is open.
+     *
+     * @protected
+     */
+    doOpen() {
+      this._poll();
+    }
+    /**
+     * Pauses polling.
+     *
+     * @param {Function} onPause - callback upon buffers are flushed and transport is paused
+     * @package
+     */
+    pause(onPause) {
+      this.readyState = "pausing";
+      const pause = () => {
+        this.readyState = "paused";
+        onPause();
+      };
+      if (this._polling || !this.writable) {
+        let total = 0;
+        if (this._polling) {
+          total++;
+          this.once("pollComplete", function() {
+            --total || pause();
+          });
+        }
+        if (!this.writable) {
+          total++;
+          this.once("drain", function() {
+            --total || pause();
+          });
+        }
+      } else {
+        pause();
+      }
+    }
+    /**
+     * Starts polling cycle.
+     *
+     * @private
+     */
+    _poll() {
+      this._polling = true;
+      this.doPoll();
+      this.emitReserved("poll");
+    }
+    /**
+     * Overloads onData to detect payloads.
+     *
+     * @protected
+     */
+    onData(data) {
+      const callback = (packet) => {
+        if ("opening" === this.readyState && packet.type === "open") {
+          this.onOpen();
+        }
+        if ("close" === packet.type) {
+          this.onClose({ description: "transport closed by the server" });
+          return false;
+        }
+        this.onPacket(packet);
+      };
+      decodePayload(data, this.socket.binaryType).forEach(callback);
+      if ("closed" !== this.readyState) {
+        this._polling = false;
+        this.emitReserved("pollComplete");
+        if ("open" === this.readyState) {
+          this._poll();
+        } else {
+        }
+      }
+    }
+    /**
+     * For polling, send a close packet.
+     *
+     * @protected
+     */
+    doClose() {
+      const close = () => {
+        this.write([{ type: "close" }]);
+      };
+      if ("open" === this.readyState) {
+        close();
+      } else {
+        this.once("open", close);
+      }
+    }
+    /**
+     * Writes a packets payload.
+     *
+     * @param {Array} packets - data packets
+     * @protected
+     */
+    write(packets) {
+      this.writable = false;
+      encodePayload(packets, (data) => {
+        this.doWrite(data, () => {
+          this.writable = true;
+          this.emitReserved("drain");
+        });
+      });
+    }
+    /**
+     * Generates uri for connection.
+     *
+     * @private
+     */
+    uri() {
+      const schema = this.opts.secure ? "https" : "http";
+      const query = this.query || {};
+      if (false !== this.opts.timestampRequests) {
+        query[this.opts.timestampParam] = randomString();
+      }
+      if (!this.supportsBinary && !query.sid) {
+        query.b64 = 1;
+      }
+      return this.createUri(schema, query);
+    }
+  };
+  var value = false;
+  try {
+    value = typeof XMLHttpRequest !== "undefined" && "withCredentials" in new XMLHttpRequest();
+  } catch (err) {
+  }
+  var hasCORS = value;
+  function empty() {
+  }
+  var BaseXHR = class extends Polling {
+    /**
+     * XHR Polling constructor.
+     *
+     * @param {Object} opts
+     * @package
+     */
+    constructor(opts) {
+      super(opts);
+      if (typeof location !== "undefined") {
+        const isSSL = "https:" === location.protocol;
+        let port = location.port;
+        if (!port) {
+          port = isSSL ? "443" : "80";
+        }
+        this.xd = typeof location !== "undefined" && opts.hostname !== location.hostname || port !== opts.port;
+      }
+    }
+    /**
+     * Sends data.
+     *
+     * @param {String} data to send.
+     * @param {Function} called upon flush.
+     * @private
+     */
+    doWrite(data, fn) {
+      const req = this.request({
+        method: "POST",
+        data
+      });
+      req.on("success", fn);
+      req.on("error", (xhrStatus, context) => {
+        this.onError("xhr post error", xhrStatus, context);
+      });
+    }
+    /**
+     * Starts a poll cycle.
+     *
+     * @private
+     */
+    doPoll() {
+      const req = this.request();
+      req.on("data", this.onData.bind(this));
+      req.on("error", (xhrStatus, context) => {
+        this.onError("xhr poll error", xhrStatus, context);
+      });
+      this.pollXhr = req;
+    }
+  };
+  var Request = class _Request extends Emitter {
+    /**
+     * Request constructor
+     *
+     * @param {Object} options
+     * @package
+     */
+    constructor(createRequest, uri, opts) {
+      super();
+      this.createRequest = createRequest;
+      installTimerFunctions(this, opts);
+      this._opts = opts;
+      this._method = opts.method || "GET";
+      this._uri = uri;
+      this._data = void 0 !== opts.data ? opts.data : null;
+      this._create();
+    }
+    /**
+     * Creates the XHR object and sends the request.
+     *
+     * @private
+     */
+    _create() {
+      var _a;
+      const opts = pick(this._opts, "agent", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "autoUnref");
+      opts.xdomain = !!this._opts.xd;
+      const xhr = this._xhr = this.createRequest(opts);
+      try {
+        xhr.open(this._method, this._uri, true);
+        try {
+          if (this._opts.extraHeaders) {
+            xhr.setDisableHeaderCheck && xhr.setDisableHeaderCheck(true);
+            for (let i in this._opts.extraHeaders) {
+              if (this._opts.extraHeaders.hasOwnProperty(i)) {
+                xhr.setRequestHeader(i, this._opts.extraHeaders[i]);
+              }
+            }
+          }
+        } catch (e) {
+        }
+        if ("POST" === this._method) {
+          try {
+            xhr.setRequestHeader("Content-type", "text/plain;charset=UTF-8");
+          } catch (e) {
+          }
+        }
+        try {
+          xhr.setRequestHeader("Accept", "*/*");
+        } catch (e) {
+        }
+        (_a = this._opts.cookieJar) === null || _a === void 0 ? void 0 : _a.addCookies(xhr);
+        if ("withCredentials" in xhr) {
+          xhr.withCredentials = this._opts.withCredentials;
+        }
+        if (this._opts.requestTimeout) {
+          xhr.timeout = this._opts.requestTimeout;
+        }
+        xhr.onreadystatechange = () => {
+          var _a2;
+          if (xhr.readyState === 3) {
+            (_a2 = this._opts.cookieJar) === null || _a2 === void 0 ? void 0 : _a2.parseCookies(
+              // @ts-ignore
+              xhr.getResponseHeader("set-cookie")
+            );
+          }
+          if (4 !== xhr.readyState)
+            return;
+          if (200 === xhr.status || 1223 === xhr.status) {
+            this._onLoad();
+          } else {
+            this.setTimeoutFn(() => {
+              this._onError(typeof xhr.status === "number" ? xhr.status : 0);
+            }, 0);
+          }
+        };
+        xhr.send(this._data);
+      } catch (e) {
+        this.setTimeoutFn(() => {
+          this._onError(e);
+        }, 0);
+        return;
+      }
+      if (typeof document !== "undefined") {
+        this._index = _Request.requestsCount++;
+        _Request.requests[this._index] = this;
+      }
+    }
+    /**
+     * Called upon error.
+     *
+     * @private
+     */
+    _onError(err) {
+      this.emitReserved("error", err, this._xhr);
+      this._cleanup(true);
+    }
+    /**
+     * Cleans up house.
+     *
+     * @private
+     */
+    _cleanup(fromError) {
+      if ("undefined" === typeof this._xhr || null === this._xhr) {
+        return;
+      }
+      this._xhr.onreadystatechange = empty;
+      if (fromError) {
+        try {
+          this._xhr.abort();
+        } catch (e) {
+        }
+      }
+      if (typeof document !== "undefined") {
+        delete _Request.requests[this._index];
+      }
+      this._xhr = null;
+    }
+    /**
+     * Called upon load.
+     *
+     * @private
+     */
+    _onLoad() {
+      const data = this._xhr.responseText;
+      if (data !== null) {
+        this.emitReserved("data", data);
+        this.emitReserved("success");
+        this._cleanup();
+      }
+    }
+    /**
+     * Aborts the request.
+     *
+     * @package
+     */
+    abort() {
+      this._cleanup();
+    }
+  };
+  Request.requestsCount = 0;
+  Request.requests = {};
+  if (typeof document !== "undefined") {
+    if (typeof attachEvent === "function") {
+      attachEvent("onunload", unloadHandler);
+    } else if (typeof addEventListener === "function") {
+      const terminationEvent = "onpagehide" in globalThisShim ? "pagehide" : "unload";
+      addEventListener(terminationEvent, unloadHandler, false);
+    }
+  }
+  function unloadHandler() {
+    for (let i in Request.requests) {
+      if (Request.requests.hasOwnProperty(i)) {
+        Request.requests[i].abort();
+      }
+    }
+  }
+  var hasXHR2 = function() {
+    const xhr = newRequest({
+      xdomain: false
+    });
+    return xhr && xhr.responseType !== null;
+  }();
+  var XHR = class extends BaseXHR {
+    constructor(opts) {
+      super(opts);
+      const forceBase64 = opts && opts.forceBase64;
+      this.supportsBinary = hasXHR2 && !forceBase64;
+    }
+    request(opts = {}) {
+      Object.assign(opts, { xd: this.xd }, this.opts);
+      return new Request(newRequest, this.uri(), opts);
+    }
+  };
+  function newRequest(opts) {
+    const xdomain = opts.xdomain;
+    try {
+      if ("undefined" !== typeof XMLHttpRequest && (!xdomain || hasCORS)) {
+        return new XMLHttpRequest();
+      }
+    } catch (e) {
+    }
+    if (!xdomain) {
+      try {
+        return new globalThisShim[["Active"].concat("Object").join("X")]("Microsoft.XMLHTTP");
+      } catch (e) {
+      }
+    }
+  }
+  var isReactNative = typeof navigator !== "undefined" && typeof navigator.product === "string" && navigator.product.toLowerCase() === "reactnative";
+  var BaseWS = class extends Transport {
+    get name() {
+      return "websocket";
+    }
+    doOpen() {
+      const uri = this.uri();
+      const protocols = this.opts.protocols;
+      const opts = isReactNative ? {} : pick(this.opts, "agent", "perMessageDeflate", "pfx", "key", "passphrase", "cert", "ca", "ciphers", "rejectUnauthorized", "localAddress", "protocolVersion", "origin", "maxPayload", "family", "checkServerIdentity");
+      if (this.opts.extraHeaders) {
+        opts.headers = this.opts.extraHeaders;
+      }
+      try {
+        this.ws = this.createSocket(uri, protocols, opts);
+      } catch (err) {
+        return this.emitReserved("error", err);
+      }
+      this.ws.binaryType = this.socket.binaryType;
+      this.addEventListeners();
+    }
+    /**
+     * Adds event listeners to the socket
+     *
+     * @private
+     */
+    addEventListeners() {
+      this.ws.onopen = () => {
+        if (this.opts.autoUnref) {
+          this.ws._socket.unref();
+        }
+        this.onOpen();
+      };
+      this.ws.onclose = (closeEvent) => this.onClose({
+        description: "websocket connection closed",
+        context: closeEvent
+      });
+      this.ws.onmessage = (ev) => this.onData(ev.data);
+      this.ws.onerror = (e) => this.onError("websocket error", e);
+    }
+    write(packets) {
+      this.writable = false;
+      for (let i = 0; i < packets.length; i++) {
+        const packet = packets[i];
+        const lastPacket = i === packets.length - 1;
+        encodePacket(packet, this.supportsBinary, (data) => {
+          try {
+            this.doWrite(packet, data);
+          } catch (e) {
+          }
+          if (lastPacket) {
+            nextTick(() => {
+              this.writable = true;
+              this.emitReserved("drain");
+            }, this.setTimeoutFn);
+          }
+        });
+      }
+    }
+    doClose() {
+      if (typeof this.ws !== "undefined") {
+        this.ws.onerror = () => {
+        };
+        this.ws.close();
+        this.ws = null;
+      }
+    }
+    /**
+     * Generates uri for connection.
+     *
+     * @private
+     */
+    uri() {
+      const schema = this.opts.secure ? "wss" : "ws";
+      const query = this.query || {};
+      if (this.opts.timestampRequests) {
+        query[this.opts.timestampParam] = randomString();
+      }
+      if (!this.supportsBinary) {
+        query.b64 = 1;
+      }
+      return this.createUri(schema, query);
+    }
+  };
+  var WebSocketCtor = globalThisShim.WebSocket || globalThisShim.MozWebSocket;
+  var WS = class extends BaseWS {
+    createSocket(uri, protocols, opts) {
+      return !isReactNative ? protocols ? new WebSocketCtor(uri, protocols) : new WebSocketCtor(uri) : new WebSocketCtor(uri, protocols, opts);
+    }
+    doWrite(_packet, data) {
+      this.ws.send(data);
+    }
+  };
+  var WT = class extends Transport {
+    get name() {
+      return "webtransport";
+    }
+    doOpen() {
+      try {
+        this._transport = new WebTransport(this.createUri("https"), this.opts.transportOptions[this.name]);
+      } catch (err) {
+        return this.emitReserved("error", err);
+      }
+      this._transport.closed.then(() => {
+        this.onClose();
+      }).catch((err) => {
+        this.onError("webtransport error", err);
+      });
+      this._transport.ready.then(() => {
+        this._transport.createBidirectionalStream().then((stream) => {
+          const decoderStream = createPacketDecoderStream(Number.MAX_SAFE_INTEGER, this.socket.binaryType);
+          const reader = stream.readable.pipeThrough(decoderStream).getReader();
+          const encoderStream = createPacketEncoderStream();
+          encoderStream.readable.pipeTo(stream.writable);
+          this._writer = encoderStream.writable.getWriter();
+          const read = () => {
+            reader.read().then(({ done, value: value2 }) => {
+              if (done) {
+                return;
+              }
+              this.onPacket(value2);
+              read();
+            }).catch((err) => {
+            });
+          };
+          read();
+          const packet = { type: "open" };
+          if (this.query.sid) {
+            packet.data = `{"sid":"${this.query.sid}"}`;
+          }
+          this._writer.write(packet).then(() => this.onOpen());
+        });
+      });
+    }
+    write(packets) {
+      this.writable = false;
+      for (let i = 0; i < packets.length; i++) {
+        const packet = packets[i];
+        const lastPacket = i === packets.length - 1;
+        this._writer.write(packet).then(() => {
+          if (lastPacket) {
+            nextTick(() => {
+              this.writable = true;
+              this.emitReserved("drain");
+            }, this.setTimeoutFn);
+          }
+        });
+      }
+    }
+    doClose() {
+      var _a;
+      (_a = this._transport) === null || _a === void 0 ? void 0 : _a.close();
+    }
+  };
+  var transports = {
+    websocket: WS,
+    webtransport: WT,
+    polling: XHR
+  };
+  var re = /^(?:(?![^:@\/?#]+:[^:@\/]*@)(http|https|ws|wss):\/\/)?((?:(([^:@\/?#]*)(?::([^:@\/?#]*))?)?@)?((?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}|[^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/;
+  var parts = [
+    "source",
+    "protocol",
+    "authority",
+    "userInfo",
+    "user",
+    "password",
+    "host",
+    "port",
+    "relative",
+    "path",
+    "directory",
+    "file",
+    "query",
+    "anchor"
+  ];
+  function parse(str) {
+    if (str.length > 8e3) {
+      throw "URI too long";
+    }
+    const src = str, b = str.indexOf("["), e = str.indexOf("]");
+    if (b != -1 && e != -1) {
+      str = str.substring(0, b) + str.substring(b, e).replace(/:/g, ";") + str.substring(e, str.length);
+    }
+    let m = re.exec(str || ""), uri = {}, i = 14;
+    while (i--) {
+      uri[parts[i]] = m[i] || "";
+    }
+    if (b != -1 && e != -1) {
+      uri.source = src;
+      uri.host = uri.host.substring(1, uri.host.length - 1).replace(/;/g, ":");
+      uri.authority = uri.authority.replace("[", "").replace("]", "").replace(/;/g, ":");
+      uri.ipv6uri = true;
+    }
+    uri.pathNames = pathNames(uri, uri["path"]);
+    uri.queryKey = queryKey(uri, uri["query"]);
+    return uri;
+  }
+  function pathNames(obj, path) {
+    const regx = /\/{2,9}/g, names = path.replace(regx, "/").split("/");
+    if (path.slice(0, 1) == "/" || path.length === 0) {
+      names.splice(0, 1);
+    }
+    if (path.slice(-1) == "/") {
+      names.splice(names.length - 1, 1);
+    }
+    return names;
+  }
+  function queryKey(uri, query) {
+    const data = {};
+    query.replace(/(?:^|&)([^&=]*)=?([^&]*)/g, function($0, $1, $2) {
+      if ($1) {
+        data[$1] = $2;
+      }
+    });
+    return data;
+  }
+  var withEventListeners = typeof addEventListener === "function" && typeof removeEventListener === "function";
+  var OFFLINE_EVENT_LISTENERS = [];
+  if (withEventListeners) {
+    addEventListener("offline", () => {
+      OFFLINE_EVENT_LISTENERS.forEach((listener) => listener());
+    }, false);
+  }
+  var SocketWithoutUpgrade = class _SocketWithoutUpgrade extends Emitter {
+    /**
+     * Socket constructor.
+     *
+     * @param {String|Object} uri - uri or options
+     * @param {Object} opts - options
+     */
+    constructor(uri, opts) {
+      super();
+      this.binaryType = defaultBinaryType;
+      this.writeBuffer = [];
+      this._prevBufferLen = 0;
+      this._pingInterval = -1;
+      this._pingTimeout = -1;
+      this._maxPayload = -1;
+      this._pingTimeoutTime = Infinity;
+      if (uri && "object" === typeof uri) {
+        opts = uri;
+        uri = null;
+      }
+      if (uri) {
+        const parsedUri = parse(uri);
+        opts.hostname = parsedUri.host;
+        opts.secure = parsedUri.protocol === "https" || parsedUri.protocol === "wss";
+        opts.port = parsedUri.port;
+        if (parsedUri.query)
+          opts.query = parsedUri.query;
+      } else if (opts.host) {
+        opts.hostname = parse(opts.host).host;
+      }
+      installTimerFunctions(this, opts);
+      this.secure = null != opts.secure ? opts.secure : typeof location !== "undefined" && "https:" === location.protocol;
+      if (opts.hostname && !opts.port) {
+        opts.port = this.secure ? "443" : "80";
+      }
+      this.hostname = opts.hostname || (typeof location !== "undefined" ? location.hostname : "localhost");
+      this.port = opts.port || (typeof location !== "undefined" && location.port ? location.port : this.secure ? "443" : "80");
+      this.transports = [];
+      this._transportsByName = {};
+      opts.transports.forEach((t) => {
+        const transportName = t.prototype.name;
+        this.transports.push(transportName);
+        this._transportsByName[transportName] = t;
+      });
+      this.opts = Object.assign({
+        path: "/engine.io",
+        agent: false,
+        withCredentials: false,
+        upgrade: true,
+        timestampParam: "t",
+        rememberUpgrade: false,
+        addTrailingSlash: true,
+        rejectUnauthorized: true,
+        perMessageDeflate: {
+          threshold: 1024
+        },
+        transportOptions: {},
+        closeOnBeforeunload: false
+      }, opts);
+      this.opts.path = this.opts.path.replace(/\/$/, "") + (this.opts.addTrailingSlash ? "/" : "");
+      if (typeof this.opts.query === "string") {
+        this.opts.query = decode2(this.opts.query);
+      }
+      if (withEventListeners) {
+        if (this.opts.closeOnBeforeunload) {
+          this._beforeunloadEventListener = () => {
+            if (this.transport) {
+              this.transport.removeAllListeners();
+              this.transport.close();
+            }
+          };
+          addEventListener("beforeunload", this._beforeunloadEventListener, false);
+        }
+        if (this.hostname !== "localhost") {
+          this._offlineEventListener = () => {
+            this._onClose("transport close", {
+              description: "network connection lost"
+            });
+          };
+          OFFLINE_EVENT_LISTENERS.push(this._offlineEventListener);
+        }
+      }
+      if (this.opts.withCredentials) {
+        this._cookieJar = createCookieJar();
+      }
+      this._open();
+    }
+    /**
+     * Creates transport of the given type.
+     *
+     * @param {String} name - transport name
+     * @return {Transport}
+     * @private
+     */
+    createTransport(name) {
+      const query = Object.assign({}, this.opts.query);
+      query.EIO = protocol;
+      query.transport = name;
+      if (this.id)
+        query.sid = this.id;
+      const opts = Object.assign({}, this.opts, {
+        query,
+        socket: this,
+        hostname: this.hostname,
+        secure: this.secure,
+        port: this.port
+      }, this.opts.transportOptions[name]);
+      return new this._transportsByName[name](opts);
+    }
+    /**
+     * Initializes transport to use and starts probe.
+     *
+     * @private
+     */
+    _open() {
+      if (this.transports.length === 0) {
+        this.setTimeoutFn(() => {
+          this.emitReserved("error", "No transports available");
+        }, 0);
+        return;
+      }
+      const transportName = this.opts.rememberUpgrade && _SocketWithoutUpgrade.priorWebsocketSuccess && this.transports.indexOf("websocket") !== -1 ? "websocket" : this.transports[0];
+      this.readyState = "opening";
+      const transport = this.createTransport(transportName);
+      transport.open();
+      this.setTransport(transport);
+    }
+    /**
+     * Sets the current transport. Disables the existing one (if any).
+     *
+     * @private
+     */
+    setTransport(transport) {
+      if (this.transport) {
+        this.transport.removeAllListeners();
+      }
+      this.transport = transport;
+      transport.on("drain", this._onDrain.bind(this)).on("packet", this._onPacket.bind(this)).on("error", this._onError.bind(this)).on("close", (reason) => this._onClose("transport close", reason));
+    }
+    /**
+     * Called when connection is deemed open.
+     *
+     * @private
+     */
+    onOpen() {
+      this.readyState = "open";
+      _SocketWithoutUpgrade.priorWebsocketSuccess = "websocket" === this.transport.name;
+      this.emitReserved("open");
+      this.flush();
+    }
+    /**
+     * Handles a packet.
+     *
+     * @private
+     */
+    _onPacket(packet) {
+      if ("opening" === this.readyState || "open" === this.readyState || "closing" === this.readyState) {
+        this.emitReserved("packet", packet);
+        this.emitReserved("heartbeat");
+        switch (packet.type) {
+          case "open":
+            this.onHandshake(JSON.parse(packet.data));
+            break;
+          case "ping":
+            this._sendPacket("pong");
+            this.emitReserved("ping");
+            this.emitReserved("pong");
+            this._resetPingTimeout();
+            break;
+          case "error":
+            const err = new Error("server error");
+            err.code = packet.data;
+            this._onError(err);
+            break;
+          case "message":
+            this.emitReserved("data", packet.data);
+            this.emitReserved("message", packet.data);
+            break;
+        }
+      } else {
+      }
+    }
+    /**
+     * Called upon handshake completion.
+     *
+     * @param {Object} data - handshake obj
+     * @private
+     */
+    onHandshake(data) {
+      this.emitReserved("handshake", data);
+      this.id = data.sid;
+      this.transport.query.sid = data.sid;
+      this._pingInterval = data.pingInterval;
+      this._pingTimeout = data.pingTimeout;
+      this._maxPayload = data.maxPayload;
+      this.onOpen();
+      if ("closed" === this.readyState)
+        return;
+      this._resetPingTimeout();
+    }
+    /**
+     * Sets and resets ping timeout timer based on server pings.
+     *
+     * @private
+     */
+    _resetPingTimeout() {
+      this.clearTimeoutFn(this._pingTimeoutTimer);
+      const delay = this._pingInterval + this._pingTimeout;
+      this._pingTimeoutTime = Date.now() + delay;
+      this._pingTimeoutTimer = this.setTimeoutFn(() => {
+        this._onClose("ping timeout");
+      }, delay);
+      if (this.opts.autoUnref) {
+        this._pingTimeoutTimer.unref();
+      }
+    }
+    /**
+     * Called on `drain` event
+     *
+     * @private
+     */
+    _onDrain() {
+      this.writeBuffer.splice(0, this._prevBufferLen);
+      this._prevBufferLen = 0;
+      if (0 === this.writeBuffer.length) {
+        this.emitReserved("drain");
+      } else {
+        this.flush();
+      }
+    }
+    /**
+     * Flush write buffers.
+     *
+     * @private
+     */
+    flush() {
+      if ("closed" !== this.readyState && this.transport.writable && !this.upgrading && this.writeBuffer.length) {
+        const packets = this._getWritablePackets();
+        this.transport.send(packets);
+        this._prevBufferLen = packets.length;
+        this.emitReserved("flush");
+      }
+    }
+    /**
+     * Ensure the encoded size of the writeBuffer is below the maxPayload value sent by the server (only for HTTP
+     * long-polling)
+     *
+     * @private
+     */
+    _getWritablePackets() {
+      const shouldCheckPayloadSize = this._maxPayload && this.transport.name === "polling" && this.writeBuffer.length > 1;
+      if (!shouldCheckPayloadSize) {
+        return this.writeBuffer;
+      }
+      let payloadSize = 1;
+      for (let i = 0; i < this.writeBuffer.length; i++) {
+        const data = this.writeBuffer[i].data;
+        if (data) {
+          payloadSize += byteLength(data);
+        }
+        if (i > 0 && payloadSize > this._maxPayload) {
+          return this.writeBuffer.slice(0, i);
+        }
+        payloadSize += 2;
+      }
+      return this.writeBuffer;
+    }
+    /**
+     * Checks whether the heartbeat timer has expired but the socket has not yet been notified.
+     *
+     * Note: this method is private for now because it does not really fit the WebSocket API, but if we put it in the
+     * `write()` method then the message would not be buffered by the Socket.IO client.
+     *
+     * @return {boolean}
+     * @private
+     */
+    /* private */
+    _hasPingExpired() {
+      if (!this._pingTimeoutTime)
+        return true;
+      const hasExpired = Date.now() > this._pingTimeoutTime;
+      if (hasExpired) {
+        this._pingTimeoutTime = 0;
+        nextTick(() => {
+          this._onClose("ping timeout");
+        }, this.setTimeoutFn);
+      }
+      return hasExpired;
+    }
+    /**
+     * Sends a message.
+     *
+     * @param {String} msg - message.
+     * @param {Object} options.
+     * @param {Function} fn - callback function.
+     * @return {Socket} for chaining.
+     */
+    write(msg, options, fn) {
+      this._sendPacket("message", msg, options, fn);
+      return this;
+    }
+    /**
+     * Sends a message. Alias of {@link Socket#write}.
+     *
+     * @param {String} msg - message.
+     * @param {Object} options.
+     * @param {Function} fn - callback function.
+     * @return {Socket} for chaining.
+     */
+    send(msg, options, fn) {
+      this._sendPacket("message", msg, options, fn);
+      return this;
+    }
+    /**
+     * Sends a packet.
+     *
+     * @param {String} type: packet type.
+     * @param {String} data.
+     * @param {Object} options.
+     * @param {Function} fn - callback function.
+     * @private
+     */
+    _sendPacket(type, data, options, fn) {
+      if ("function" === typeof data) {
+        fn = data;
+        data = void 0;
+      }
+      if ("function" === typeof options) {
+        fn = options;
+        options = null;
+      }
+      if ("closing" === this.readyState || "closed" === this.readyState) {
+        return;
+      }
+      options = options || {};
+      options.compress = false !== options.compress;
+      const packet = {
+        type,
+        data,
+        options
+      };
+      this.emitReserved("packetCreate", packet);
+      this.writeBuffer.push(packet);
+      if (fn)
+        this.once("flush", fn);
+      this.flush();
+    }
+    /**
+     * Closes the connection.
+     */
+    close() {
+      const close = () => {
+        this._onClose("forced close");
+        this.transport.close();
+      };
+      const cleanupAndClose = () => {
+        this.off("upgrade", cleanupAndClose);
+        this.off("upgradeError", cleanupAndClose);
+        close();
+      };
+      const waitForUpgrade = () => {
+        this.once("upgrade", cleanupAndClose);
+        this.once("upgradeError", cleanupAndClose);
+      };
+      if ("opening" === this.readyState || "open" === this.readyState) {
+        this.readyState = "closing";
+        if (this.writeBuffer.length) {
+          this.once("drain", () => {
+            if (this.upgrading) {
+              waitForUpgrade();
+            } else {
+              close();
+            }
+          });
+        } else if (this.upgrading) {
+          waitForUpgrade();
+        } else {
+          close();
+        }
+      }
+      return this;
+    }
+    /**
+     * Called upon transport error
+     *
+     * @private
+     */
+    _onError(err) {
+      _SocketWithoutUpgrade.priorWebsocketSuccess = false;
+      if (this.opts.tryAllTransports && this.transports.length > 1 && this.readyState === "opening") {
+        this.transports.shift();
+        return this._open();
+      }
+      this.emitReserved("error", err);
+      this._onClose("transport error", err);
+    }
+    /**
+     * Called upon transport close.
+     *
+     * @private
+     */
+    _onClose(reason, description) {
+      if ("opening" === this.readyState || "open" === this.readyState || "closing" === this.readyState) {
+        this.clearTimeoutFn(this._pingTimeoutTimer);
+        this.transport.removeAllListeners("close");
+        this.transport.close();
+        this.transport.removeAllListeners();
+        if (withEventListeners) {
+          if (this._beforeunloadEventListener) {
+            removeEventListener("beforeunload", this._beforeunloadEventListener, false);
+          }
+          if (this._offlineEventListener) {
+            const i = OFFLINE_EVENT_LISTENERS.indexOf(this._offlineEventListener);
+            if (i !== -1) {
+              OFFLINE_EVENT_LISTENERS.splice(i, 1);
+            }
+          }
+        }
+        this.readyState = "closed";
+        this.id = null;
+        this.emitReserved("close", reason, description);
+        this.writeBuffer = [];
+        this._prevBufferLen = 0;
+      }
+    }
+  };
+  SocketWithoutUpgrade.protocol = protocol;
+  var SocketWithUpgrade = class extends SocketWithoutUpgrade {
+    constructor() {
+      super(...arguments);
+      this._upgrades = [];
+    }
+    onOpen() {
+      super.onOpen();
+      if ("open" === this.readyState && this.opts.upgrade) {
+        for (let i = 0; i < this._upgrades.length; i++) {
+          this._probe(this._upgrades[i]);
+        }
+      }
+    }
+    /**
+     * Probes a transport.
+     *
+     * @param {String} name - transport name
+     * @private
+     */
+    _probe(name) {
+      let transport = this.createTransport(name);
+      let failed = false;
+      SocketWithoutUpgrade.priorWebsocketSuccess = false;
+      const onTransportOpen = () => {
+        if (failed)
+          return;
+        transport.send([{ type: "ping", data: "probe" }]);
+        transport.once("packet", (msg) => {
+          if (failed)
+            return;
+          if ("pong" === msg.type && "probe" === msg.data) {
+            this.upgrading = true;
+            this.emitReserved("upgrading", transport);
+            if (!transport)
+              return;
+            SocketWithoutUpgrade.priorWebsocketSuccess = "websocket" === transport.name;
+            this.transport.pause(() => {
+              if (failed)
+                return;
+              if ("closed" === this.readyState)
+                return;
+              cleanup();
+              this.setTransport(transport);
+              transport.send([{ type: "upgrade" }]);
+              this.emitReserved("upgrade", transport);
+              transport = null;
+              this.upgrading = false;
+              this.flush();
+            });
+          } else {
+            const err = new Error("probe error");
+            err.transport = transport.name;
+            this.emitReserved("upgradeError", err);
+          }
+        });
+      };
+      function freezeTransport() {
+        if (failed)
+          return;
+        failed = true;
+        cleanup();
+        transport.close();
+        transport = null;
+      }
+      const onerror = (err) => {
+        const error = new Error("probe error: " + err);
+        error.transport = transport.name;
+        freezeTransport();
+        this.emitReserved("upgradeError", error);
+      };
+      function onTransportClose() {
+        onerror("transport closed");
+      }
+      function onclose() {
+        onerror("socket closed");
+      }
+      function onupgrade(to) {
+        if (transport && to.name !== transport.name) {
+          freezeTransport();
+        }
+      }
+      const cleanup = () => {
+        transport.removeListener("open", onTransportOpen);
+        transport.removeListener("error", onerror);
+        transport.removeListener("close", onTransportClose);
+        this.off("close", onclose);
+        this.off("upgrading", onupgrade);
+      };
+      transport.once("open", onTransportOpen);
+      transport.once("error", onerror);
+      transport.once("close", onTransportClose);
+      this.once("close", onclose);
+      this.once("upgrading", onupgrade);
+      if (this._upgrades.indexOf("webtransport") !== -1 && name !== "webtransport") {
+        this.setTimeoutFn(() => {
+          if (!failed) {
+            transport.open();
+          }
+        }, 200);
+      } else {
+        transport.open();
+      }
+    }
+    onHandshake(data) {
+      this._upgrades = this._filterUpgrades(data.upgrades);
+      super.onHandshake(data);
+    }
+    /**
+     * Filters upgrades, returning only those matching client transports.
+     *
+     * @param {Array} upgrades - server upgrades
+     * @private
+     */
+    _filterUpgrades(upgrades) {
+      const filteredUpgrades = [];
+      for (let i = 0; i < upgrades.length; i++) {
+        if (~this.transports.indexOf(upgrades[i]))
+          filteredUpgrades.push(upgrades[i]);
+      }
+      return filteredUpgrades;
+    }
+  };
+  var Socket = class extends SocketWithUpgrade {
+    constructor(uri, opts = {}) {
+      const o = typeof uri === "object" ? uri : opts;
+      if (!o.transports || o.transports && typeof o.transports[0] === "string") {
+        o.transports = (o.transports || ["polling", "websocket", "webtransport"]).map((transportName) => transports[transportName]).filter((t) => !!t);
+      }
+      super(uri, o);
+    }
+  };
+  var protocol2 = Socket.protocol;
+  function url(uri, path = "", loc) {
+    let obj = uri;
+    loc = loc || typeof location !== "undefined" && location;
+    if (null == uri)
+      uri = loc.protocol + "//" + loc.host;
+    if (typeof uri === "string") {
+      if ("/" === uri.charAt(0)) {
+        if ("/" === uri.charAt(1)) {
+          uri = loc.protocol + uri;
+        } else {
+          uri = loc.host + uri;
+        }
+      }
+      if (!/^(https?|wss?):\/\//.test(uri)) {
+        if ("undefined" !== typeof loc) {
+          uri = loc.protocol + "//" + uri;
+        } else {
+          uri = "https://" + uri;
+        }
+      }
+      obj = parse(uri);
+    }
+    if (!obj.port) {
+      if (/^(http|ws)$/.test(obj.protocol)) {
+        obj.port = "80";
+      } else if (/^(http|ws)s$/.test(obj.protocol)) {
+        obj.port = "443";
+      }
+    }
+    obj.path = obj.path || "/";
+    const ipv6 = obj.host.indexOf(":") !== -1;
+    const host = ipv6 ? "[" + obj.host + "]" : obj.host;
+    obj.id = obj.protocol + "://" + host + ":" + obj.port + path;
+    obj.href = obj.protocol + "://" + host + (loc && loc.port === obj.port ? "" : ":" + obj.port);
+    return obj;
+  }
+  var esm_exports = {};
+  __export(esm_exports, {
+    Decoder: () => Decoder,
+    Encoder: () => Encoder,
+    PacketType: () => PacketType,
+    protocol: () => protocol3
+  });
+  var withNativeArrayBuffer3 = typeof ArrayBuffer === "function";
+  var isView2 = (obj) => {
+    return typeof ArrayBuffer.isView === "function" ? ArrayBuffer.isView(obj) : obj.buffer instanceof ArrayBuffer;
+  };
+  var toString = Object.prototype.toString;
+  var withNativeBlob2 = typeof Blob === "function" || typeof Blob !== "undefined" && toString.call(Blob) === "[object BlobConstructor]";
+  var withNativeFile = typeof File === "function" || typeof File !== "undefined" && toString.call(File) === "[object FileConstructor]";
+  function isBinary(obj) {
+    return withNativeArrayBuffer3 && (obj instanceof ArrayBuffer || isView2(obj)) || withNativeBlob2 && obj instanceof Blob || withNativeFile && obj instanceof File;
+  }
+  function hasBinary(obj, toJSON) {
+    if (!obj || typeof obj !== "object") {
+      return false;
+    }
+    if (Array.isArray(obj)) {
+      for (let i = 0, l = obj.length; i < l; i++) {
+        if (hasBinary(obj[i])) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (isBinary(obj)) {
+      return true;
+    }
+    if (obj.toJSON && typeof obj.toJSON === "function" && arguments.length === 1) {
+      return hasBinary(obj.toJSON(), true);
+    }
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key) && hasBinary(obj[key])) {
+        return true;
+      }
+    }
+    return false;
+  }
+  function deconstructPacket(packet) {
+    const buffers = [];
+    const packetData = packet.data;
+    const pack = packet;
+    pack.data = _deconstructPacket(packetData, buffers);
+    pack.attachments = buffers.length;
+    return { packet: pack, buffers };
+  }
+  function _deconstructPacket(data, buffers) {
+    if (!data)
+      return data;
+    if (isBinary(data)) {
+      const placeholder = { _placeholder: true, num: buffers.length };
+      buffers.push(data);
+      return placeholder;
+    } else if (Array.isArray(data)) {
+      const newData = new Array(data.length);
+      for (let i = 0; i < data.length; i++) {
+        newData[i] = _deconstructPacket(data[i], buffers);
+      }
+      return newData;
+    } else if (typeof data === "object" && !(data instanceof Date)) {
+      const newData = {};
+      for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          newData[key] = _deconstructPacket(data[key], buffers);
+        }
+      }
+      return newData;
+    }
+    return data;
+  }
+  function reconstructPacket(packet, buffers) {
+    packet.data = _reconstructPacket(packet.data, buffers);
+    delete packet.attachments;
+    return packet;
+  }
+  function _reconstructPacket(data, buffers) {
+    if (!data)
+      return data;
+    if (data && data._placeholder === true) {
+      const isIndexValid = typeof data.num === "number" && data.num >= 0 && data.num < buffers.length;
+      if (isIndexValid) {
+        return buffers[data.num];
+      } else {
+        throw new Error("illegal attachments");
+      }
+    } else if (Array.isArray(data)) {
+      for (let i = 0; i < data.length; i++) {
+        data[i] = _reconstructPacket(data[i], buffers);
+      }
+    } else if (typeof data === "object") {
+      for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          data[key] = _reconstructPacket(data[key], buffers);
+        }
+      }
+    }
+    return data;
+  }
+  var RESERVED_EVENTS = [
+    "connect",
+    "connect_error",
+    "disconnect",
+    "disconnecting",
+    "newListener",
+    "removeListener"
+    // used by the Node.js EventEmitter
+  ];
+  var protocol3 = 5;
+  var PacketType;
+  (function(PacketType2) {
+    PacketType2[PacketType2["CONNECT"] = 0] = "CONNECT";
+    PacketType2[PacketType2["DISCONNECT"] = 1] = "DISCONNECT";
+    PacketType2[PacketType2["EVENT"] = 2] = "EVENT";
+    PacketType2[PacketType2["ACK"] = 3] = "ACK";
+    PacketType2[PacketType2["CONNECT_ERROR"] = 4] = "CONNECT_ERROR";
+    PacketType2[PacketType2["BINARY_EVENT"] = 5] = "BINARY_EVENT";
+    PacketType2[PacketType2["BINARY_ACK"] = 6] = "BINARY_ACK";
+  })(PacketType || (PacketType = {}));
+  var Encoder = class {
+    /**
+     * Encoder constructor
+     *
+     * @param {function} replacer - custom replacer to pass down to JSON.parse
+     */
+    constructor(replacer) {
+      this.replacer = replacer;
+    }
+    /**
+     * Encode a packet as a single string if non-binary, or as a
+     * buffer sequence, depending on packet type.
+     *
+     * @param {Object} obj - packet object
+     */
+    encode(obj) {
+      if (obj.type === PacketType.EVENT || obj.type === PacketType.ACK) {
+        if (hasBinary(obj)) {
+          return this.encodeAsBinary({
+            type: obj.type === PacketType.EVENT ? PacketType.BINARY_EVENT : PacketType.BINARY_ACK,
+            nsp: obj.nsp,
+            data: obj.data,
+            id: obj.id
+          });
+        }
+      }
+      return [this.encodeAsString(obj)];
+    }
+    /**
+     * Encode packet as string.
+     */
+    encodeAsString(obj) {
+      let str = "" + obj.type;
+      if (obj.type === PacketType.BINARY_EVENT || obj.type === PacketType.BINARY_ACK) {
+        str += obj.attachments + "-";
+      }
+      if (obj.nsp && "/" !== obj.nsp) {
+        str += obj.nsp + ",";
+      }
+      if (null != obj.id) {
+        str += obj.id;
+      }
+      if (null != obj.data) {
+        str += JSON.stringify(obj.data, this.replacer);
+      }
+      return str;
+    }
+    /**
+     * Encode packet as 'buffer sequence' by removing blobs, and
+     * deconstructing packet into object with placeholders and
+     * a list of buffers.
+     */
+    encodeAsBinary(obj) {
+      const deconstruction = deconstructPacket(obj);
+      const pack = this.encodeAsString(deconstruction.packet);
+      const buffers = deconstruction.buffers;
+      buffers.unshift(pack);
+      return buffers;
+    }
+  };
+  function isObject(value2) {
+    return Object.prototype.toString.call(value2) === "[object Object]";
+  }
+  var Decoder = class _Decoder extends Emitter {
+    /**
+     * Decoder constructor
+     *
+     * @param {function} reviver - custom reviver to pass down to JSON.stringify
+     */
+    constructor(reviver) {
+      super();
+      this.reviver = reviver;
+    }
+    /**
+     * Decodes an encoded packet string into packet JSON.
+     *
+     * @param {String} obj - encoded packet
+     */
+    add(obj) {
+      let packet;
+      if (typeof obj === "string") {
+        if (this.reconstructor) {
+          throw new Error("got plaintext data when reconstructing a packet");
+        }
+        packet = this.decodeString(obj);
+        const isBinaryEvent = packet.type === PacketType.BINARY_EVENT;
+        if (isBinaryEvent || packet.type === PacketType.BINARY_ACK) {
+          packet.type = isBinaryEvent ? PacketType.EVENT : PacketType.ACK;
+          this.reconstructor = new BinaryReconstructor(packet);
+          if (packet.attachments === 0) {
+            super.emitReserved("decoded", packet);
+          }
+        } else {
+          super.emitReserved("decoded", packet);
+        }
+      } else if (isBinary(obj) || obj.base64) {
+        if (!this.reconstructor) {
+          throw new Error("got binary data when not reconstructing a packet");
+        } else {
+          packet = this.reconstructor.takeBinaryData(obj);
+          if (packet) {
+            this.reconstructor = null;
+            super.emitReserved("decoded", packet);
+          }
+        }
+      } else {
+        throw new Error("Unknown type: " + obj);
+      }
+    }
+    /**
+     * Decode a packet String (JSON data)
+     *
+     * @param {String} str
+     * @return {Object} packet
+     */
+    decodeString(str) {
+      let i = 0;
+      const p = {
+        type: Number(str.charAt(0))
+      };
+      if (PacketType[p.type] === void 0) {
+        throw new Error("unknown packet type " + p.type);
+      }
+      if (p.type === PacketType.BINARY_EVENT || p.type === PacketType.BINARY_ACK) {
+        const start = i + 1;
+        while (str.charAt(++i) !== "-" && i != str.length) {
+        }
+        const buf = str.substring(start, i);
+        if (buf != Number(buf) || str.charAt(i) !== "-") {
+          throw new Error("Illegal attachments");
+        }
+        p.attachments = Number(buf);
+      }
+      if ("/" === str.charAt(i + 1)) {
+        const start = i + 1;
+        while (++i) {
+          const c = str.charAt(i);
+          if ("," === c)
+            break;
+          if (i === str.length)
+            break;
+        }
+        p.nsp = str.substring(start, i);
+      } else {
+        p.nsp = "/";
+      }
+      const next = str.charAt(i + 1);
+      if ("" !== next && Number(next) == next) {
+        const start = i + 1;
+        while (++i) {
+          const c = str.charAt(i);
+          if (null == c || Number(c) != c) {
+            --i;
+            break;
+          }
+          if (i === str.length)
+            break;
+        }
+        p.id = Number(str.substring(start, i + 1));
+      }
+      if (str.charAt(++i)) {
+        const payload = this.tryParse(str.substr(i));
+        if (_Decoder.isPayloadValid(p.type, payload)) {
+          p.data = payload;
+        } else {
+          throw new Error("invalid payload");
+        }
+      }
+      return p;
+    }
+    tryParse(str) {
+      try {
+        return JSON.parse(str, this.reviver);
+      } catch (e) {
+        return false;
+      }
+    }
+    static isPayloadValid(type, payload) {
+      switch (type) {
+        case PacketType.CONNECT:
+          return isObject(payload);
+        case PacketType.DISCONNECT:
+          return payload === void 0;
+        case PacketType.CONNECT_ERROR:
+          return typeof payload === "string" || isObject(payload);
+        case PacketType.EVENT:
+        case PacketType.BINARY_EVENT:
+          return Array.isArray(payload) && (typeof payload[0] === "number" || typeof payload[0] === "string" && RESERVED_EVENTS.indexOf(payload[0]) === -1);
+        case PacketType.ACK:
+        case PacketType.BINARY_ACK:
+          return Array.isArray(payload);
+      }
+    }
+    /**
+     * Deallocates a parser's resources
+     */
+    destroy() {
+      if (this.reconstructor) {
+        this.reconstructor.finishedReconstruction();
+        this.reconstructor = null;
+      }
+    }
+  };
+  var BinaryReconstructor = class {
+    constructor(packet) {
+      this.packet = packet;
+      this.buffers = [];
+      this.reconPack = packet;
+    }
+    /**
+     * Method to be called when binary data received from connection
+     * after a BINARY_EVENT packet.
+     *
+     * @param {Buffer | ArrayBuffer} binData - the raw binary data received
+     * @return {null | Object} returns null if more binary data is expected or
+     *   a reconstructed packet object if all buffers have been received.
+     */
+    takeBinaryData(binData) {
+      this.buffers.push(binData);
+      if (this.buffers.length === this.reconPack.attachments) {
+        const packet = reconstructPacket(this.reconPack, this.buffers);
+        this.finishedReconstruction();
+        return packet;
+      }
+      return null;
+    }
+    /**
+     * Cleans up binary packet reconstruction variables.
+     */
+    finishedReconstruction() {
+      this.reconPack = null;
+      this.buffers = [];
+    }
+  };
+  function on(obj, ev, fn) {
+    obj.on(ev, fn);
+    return function subDestroy() {
+      obj.off(ev, fn);
+    };
+  }
+  var RESERVED_EVENTS2 = Object.freeze({
+    connect: 1,
+    connect_error: 1,
+    disconnect: 1,
+    disconnecting: 1,
+    // EventEmitter reserved events: https://nodejs.org/api/events.html#events_event_newlistener
+    newListener: 1,
+    removeListener: 1
+  });
+  var Socket2 = class extends Emitter {
+    /**
+     * `Socket` constructor.
+     */
+    constructor(io, nsp, opts) {
+      super();
+      this.connected = false;
+      this.recovered = false;
+      this.receiveBuffer = [];
+      this.sendBuffer = [];
+      this._queue = [];
+      this._queueSeq = 0;
+      this.ids = 0;
+      this.acks = {};
+      this.flags = {};
+      this.io = io;
+      this.nsp = nsp;
+      if (opts && opts.auth) {
+        this.auth = opts.auth;
+      }
+      this._opts = Object.assign({}, opts);
+      if (this.io._autoConnect)
+        this.open();
+    }
+    /**
+     * Whether the socket is currently disconnected
+     *
+     * @example
+     * const socket = io();
+     *
+     * socket.on("connect", () => {
+     *   console.log(socket.disconnected); // false
+     * });
+     *
+     * socket.on("disconnect", () => {
+     *   console.log(socket.disconnected); // true
+     * });
+     */
+    get disconnected() {
+      return !this.connected;
+    }
+    /**
+     * Subscribe to open, close and packet events
+     *
+     * @private
+     */
+    subEvents() {
+      if (this.subs)
+        return;
+      const io = this.io;
+      this.subs = [
+        on(io, "open", this.onopen.bind(this)),
+        on(io, "packet", this.onpacket.bind(this)),
+        on(io, "error", this.onerror.bind(this)),
+        on(io, "close", this.onclose.bind(this))
+      ];
+    }
+    /**
+     * Whether the Socket will try to reconnect when its Manager connects or reconnects.
+     *
+     * @example
+     * const socket = io();
+     *
+     * console.log(socket.active); // true
+     *
+     * socket.on("disconnect", (reason) => {
+     *   if (reason === "io server disconnect") {
+     *     // the disconnection was initiated by the server, you need to manually reconnect
+     *     console.log(socket.active); // false
+     *   }
+     *   // else the socket will automatically try to reconnect
+     *   console.log(socket.active); // true
+     * });
+     */
+    get active() {
+      return !!this.subs;
+    }
+    /**
+     * "Opens" the socket.
+     *
+     * @example
+     * const socket = io({
+     *   autoConnect: false
+     * });
+     *
+     * socket.connect();
+     */
+    connect() {
+      if (this.connected)
+        return this;
+      this.subEvents();
+      if (!this.io["_reconnecting"])
+        this.io.open();
+      if ("open" === this.io._readyState)
+        this.onopen();
+      return this;
+    }
+    /**
+     * Alias for {@link connect()}.
+     */
+    open() {
+      return this.connect();
+    }
+    /**
+     * Sends a `message` event.
+     *
+     * This method mimics the WebSocket.send() method.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/send
+     *
+     * @example
+     * socket.send("hello");
+     *
+     * // this is equivalent to
+     * socket.emit("message", "hello");
+     *
+     * @return self
+     */
+    send(...args) {
+      args.unshift("message");
+      this.emit.apply(this, args);
+      return this;
+    }
+    /**
+     * Override `emit`.
+     * If the event is in `events`, it's emitted normally.
+     *
+     * @example
+     * socket.emit("hello", "world");
+     *
+     * // all serializable datastructures are supported (no need to call JSON.stringify)
+     * socket.emit("hello", 1, "2", { 3: ["4"], 5: Uint8Array.from([6]) });
+     *
+     * // with an acknowledgement from the server
+     * socket.emit("hello", "world", (val) => {
+     *   // ...
+     * });
+     *
+     * @return self
+     */
+    emit(ev, ...args) {
+      var _a, _b, _c;
+      if (RESERVED_EVENTS2.hasOwnProperty(ev)) {
+        throw new Error('"' + ev.toString() + '" is a reserved event name');
+      }
+      args.unshift(ev);
+      if (this._opts.retries && !this.flags.fromQueue && !this.flags.volatile) {
+        this._addToQueue(args);
+        return this;
+      }
+      const packet = {
+        type: PacketType.EVENT,
+        data: args
+      };
+      packet.options = {};
+      packet.options.compress = this.flags.compress !== false;
+      if ("function" === typeof args[args.length - 1]) {
+        const id = this.ids++;
+        const ack = args.pop();
+        this._registerAckCallback(id, ack);
+        packet.id = id;
+      }
+      const isTransportWritable = (_b = (_a = this.io.engine) === null || _a === void 0 ? void 0 : _a.transport) === null || _b === void 0 ? void 0 : _b.writable;
+      const isConnected = this.connected && !((_c = this.io.engine) === null || _c === void 0 ? void 0 : _c._hasPingExpired());
+      const discardPacket = this.flags.volatile && !isTransportWritable;
+      if (discardPacket) {
+      } else if (isConnected) {
+        this.notifyOutgoingListeners(packet);
+        this.packet(packet);
+      } else {
+        this.sendBuffer.push(packet);
+      }
+      this.flags = {};
+      return this;
+    }
+    /**
+     * @private
+     */
+    _registerAckCallback(id, ack) {
+      var _a;
+      const timeout = (_a = this.flags.timeout) !== null && _a !== void 0 ? _a : this._opts.ackTimeout;
+      if (timeout === void 0) {
+        this.acks[id] = ack;
+        return;
+      }
+      const timer = this.io.setTimeoutFn(() => {
+        delete this.acks[id];
+        for (let i = 0; i < this.sendBuffer.length; i++) {
+          if (this.sendBuffer[i].id === id) {
+            this.sendBuffer.splice(i, 1);
+          }
+        }
+        ack.call(this, new Error("operation has timed out"));
+      }, timeout);
+      const fn = (...args) => {
+        this.io.clearTimeoutFn(timer);
+        ack.apply(this, args);
+      };
+      fn.withError = true;
+      this.acks[id] = fn;
+    }
+    /**
+     * Emits an event and waits for an acknowledgement
+     *
+     * @example
+     * // without timeout
+     * const response = await socket.emitWithAck("hello", "world");
+     *
+     * // with a specific timeout
+     * try {
+     *   const response = await socket.timeout(1000).emitWithAck("hello", "world");
+     * } catch (err) {
+     *   // the server did not acknowledge the event in the given delay
+     * }
+     *
+     * @return a Promise that will be fulfilled when the server acknowledges the event
+     */
+    emitWithAck(ev, ...args) {
+      return new Promise((resolve, reject) => {
+        const fn = (arg1, arg2) => {
+          return arg1 ? reject(arg1) : resolve(arg2);
+        };
+        fn.withError = true;
+        args.push(fn);
+        this.emit(ev, ...args);
+      });
+    }
+    /**
+     * Add the packet to the queue.
+     * @param args
+     * @private
+     */
+    _addToQueue(args) {
+      let ack;
+      if (typeof args[args.length - 1] === "function") {
+        ack = args.pop();
+      }
+      const packet = {
+        id: this._queueSeq++,
+        tryCount: 0,
+        pending: false,
+        args,
+        flags: Object.assign({ fromQueue: true }, this.flags)
+      };
+      args.push((err, ...responseArgs) => {
+        if (packet !== this._queue[0]) {
+          return;
+        }
+        const hasError = err !== null;
+        if (hasError) {
+          if (packet.tryCount > this._opts.retries) {
+            this._queue.shift();
+            if (ack) {
+              ack(err);
+            }
+          }
+        } else {
+          this._queue.shift();
+          if (ack) {
+            ack(null, ...responseArgs);
+          }
+        }
+        packet.pending = false;
+        return this._drainQueue();
+      });
+      this._queue.push(packet);
+      this._drainQueue();
+    }
+    /**
+     * Send the first packet of the queue, and wait for an acknowledgement from the server.
+     * @param force - whether to resend a packet that has not been acknowledged yet
+     *
+     * @private
+     */
+    _drainQueue(force = false) {
+      if (!this.connected || this._queue.length === 0) {
+        return;
+      }
+      const packet = this._queue[0];
+      if (packet.pending && !force) {
+        return;
+      }
+      packet.pending = true;
+      packet.tryCount++;
+      this.flags = packet.flags;
+      this.emit.apply(this, packet.args);
+    }
+    /**
+     * Sends a packet.
+     *
+     * @param packet
+     * @private
+     */
+    packet(packet) {
+      packet.nsp = this.nsp;
+      this.io._packet(packet);
+    }
+    /**
+     * Called upon engine `open`.
+     *
+     * @private
+     */
+    onopen() {
+      if (typeof this.auth == "function") {
+        this.auth((data) => {
+          this._sendConnectPacket(data);
+        });
+      } else {
+        this._sendConnectPacket(this.auth);
+      }
+    }
+    /**
+     * Sends a CONNECT packet to initiate the Socket.IO session.
+     *
+     * @param data
+     * @private
+     */
+    _sendConnectPacket(data) {
+      this.packet({
+        type: PacketType.CONNECT,
+        data: this._pid ? Object.assign({ pid: this._pid, offset: this._lastOffset }, data) : data
+      });
+    }
+    /**
+     * Called upon engine or manager `error`.
+     *
+     * @param err
+     * @private
+     */
+    onerror(err) {
+      if (!this.connected) {
+        this.emitReserved("connect_error", err);
+      }
+    }
+    /**
+     * Called upon engine `close`.
+     *
+     * @param reason
+     * @param description
+     * @private
+     */
+    onclose(reason, description) {
+      this.connected = false;
+      delete this.id;
+      this.emitReserved("disconnect", reason, description);
+      this._clearAcks();
+    }
+    /**
+     * Clears the acknowledgement handlers upon disconnection, since the client will never receive an acknowledgement from
+     * the server.
+     *
+     * @private
+     */
+    _clearAcks() {
+      Object.keys(this.acks).forEach((id) => {
+        const isBuffered = this.sendBuffer.some((packet) => String(packet.id) === id);
+        if (!isBuffered) {
+          const ack = this.acks[id];
+          delete this.acks[id];
+          if (ack.withError) {
+            ack.call(this, new Error("socket has been disconnected"));
+          }
+        }
+      });
+    }
+    /**
+     * Called with socket packet.
+     *
+     * @param packet
+     * @private
+     */
+    onpacket(packet) {
+      const sameNamespace = packet.nsp === this.nsp;
+      if (!sameNamespace)
+        return;
+      switch (packet.type) {
+        case PacketType.CONNECT:
+          if (packet.data && packet.data.sid) {
+            this.onconnect(packet.data.sid, packet.data.pid);
+          } else {
+            this.emitReserved("connect_error", new Error("It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)"));
+          }
+          break;
+        case PacketType.EVENT:
+        case PacketType.BINARY_EVENT:
+          this.onevent(packet);
+          break;
+        case PacketType.ACK:
+        case PacketType.BINARY_ACK:
+          this.onack(packet);
+          break;
+        case PacketType.DISCONNECT:
+          this.ondisconnect();
+          break;
+        case PacketType.CONNECT_ERROR:
+          this.destroy();
+          const err = new Error(packet.data.message);
+          err.data = packet.data.data;
+          this.emitReserved("connect_error", err);
+          break;
+      }
+    }
+    /**
+     * Called upon a server event.
+     *
+     * @param packet
+     * @private
+     */
+    onevent(packet) {
+      const args = packet.data || [];
+      if (null != packet.id) {
+        args.push(this.ack(packet.id));
+      }
+      if (this.connected) {
+        this.emitEvent(args);
+      } else {
+        this.receiveBuffer.push(Object.freeze(args));
+      }
+    }
+    emitEvent(args) {
+      if (this._anyListeners && this._anyListeners.length) {
+        const listeners = this._anyListeners.slice();
+        for (const listener of listeners) {
+          listener.apply(this, args);
+        }
+      }
+      super.emit.apply(this, args);
+      if (this._pid && args.length && typeof args[args.length - 1] === "string") {
+        this._lastOffset = args[args.length - 1];
+      }
+    }
+    /**
+     * Produces an ack callback to emit with an event.
+     *
+     * @private
+     */
+    ack(id) {
+      const self2 = this;
+      let sent = false;
+      return function(...args) {
+        if (sent)
+          return;
+        sent = true;
+        self2.packet({
+          type: PacketType.ACK,
+          id,
+          data: args
+        });
+      };
+    }
+    /**
+     * Called upon a server acknowledgement.
+     *
+     * @param packet
+     * @private
+     */
+    onack(packet) {
+      const ack = this.acks[packet.id];
+      if (typeof ack !== "function") {
+        return;
+      }
+      delete this.acks[packet.id];
+      if (ack.withError) {
+        packet.data.unshift(null);
+      }
+      ack.apply(this, packet.data);
+    }
+    /**
+     * Called upon server connect.
+     *
+     * @private
+     */
+    onconnect(id, pid) {
+      this.id = id;
+      this.recovered = pid && this._pid === pid;
+      this._pid = pid;
+      this.connected = true;
+      this.emitBuffered();
+      this.emitReserved("connect");
+      this._drainQueue(true);
+    }
+    /**
+     * Emit buffered events (received and emitted).
+     *
+     * @private
+     */
+    emitBuffered() {
+      this.receiveBuffer.forEach((args) => this.emitEvent(args));
+      this.receiveBuffer = [];
+      this.sendBuffer.forEach((packet) => {
+        this.notifyOutgoingListeners(packet);
+        this.packet(packet);
+      });
+      this.sendBuffer = [];
+    }
+    /**
+     * Called upon server disconnect.
+     *
+     * @private
+     */
+    ondisconnect() {
+      this.destroy();
+      this.onclose("io server disconnect");
+    }
+    /**
+     * Called upon forced client/server side disconnections,
+     * this method ensures the manager stops tracking us and
+     * that reconnections don't get triggered for this.
+     *
+     * @private
+     */
+    destroy() {
+      if (this.subs) {
+        this.subs.forEach((subDestroy) => subDestroy());
+        this.subs = void 0;
+      }
+      this.io["_destroy"](this);
+    }
+    /**
+     * Disconnects the socket manually. In that case, the socket will not try to reconnect.
+     *
+     * If this is the last active Socket instance of the {@link Manager}, the low-level connection will be closed.
+     *
+     * @example
+     * const socket = io();
+     *
+     * socket.on("disconnect", (reason) => {
+     *   // console.log(reason); prints "io client disconnect"
+     * });
+     *
+     * socket.disconnect();
+     *
+     * @return self
+     */
+    disconnect() {
+      if (this.connected) {
+        this.packet({ type: PacketType.DISCONNECT });
+      }
+      this.destroy();
+      if (this.connected) {
+        this.onclose("io client disconnect");
+      }
+      return this;
+    }
+    /**
+     * Alias for {@link disconnect()}.
+     *
+     * @return self
+     */
+    close() {
+      return this.disconnect();
+    }
+    /**
+     * Sets the compress flag.
+     *
+     * @example
+     * socket.compress(false).emit("hello");
+     *
+     * @param compress - if `true`, compresses the sending data
+     * @return self
+     */
+    compress(compress) {
+      this.flags.compress = compress;
+      return this;
+    }
+    /**
+     * Sets a modifier for a subsequent event emission that the event message will be dropped when this socket is not
+     * ready to send messages.
+     *
+     * @example
+     * socket.volatile.emit("hello"); // the server may or may not receive it
+     *
+     * @returns self
+     */
+    get volatile() {
+      this.flags.volatile = true;
+      return this;
+    }
+    /**
+     * Sets a modifier for a subsequent event emission that the callback will be called with an error when the
+     * given number of milliseconds have elapsed without an acknowledgement from the server:
+     *
+     * @example
+     * socket.timeout(5000).emit("my-event", (err) => {
+     *   if (err) {
+     *     // the server did not acknowledge the event in the given delay
+     *   }
+     * });
+     *
+     * @returns self
+     */
+    timeout(timeout) {
+      this.flags.timeout = timeout;
+      return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback.
+     *
+     * @example
+     * socket.onAny((event, ...args) => {
+     *   console.log(`got ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    onAny(listener) {
+      this._anyListeners = this._anyListeners || [];
+      this._anyListeners.push(listener);
+      return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback. The listener is added to the beginning of the listeners array.
+     *
+     * @example
+     * socket.prependAny((event, ...args) => {
+     *   console.log(`got event ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    prependAny(listener) {
+      this._anyListeners = this._anyListeners || [];
+      this._anyListeners.unshift(listener);
+      return this;
+    }
+    /**
+     * Removes the listener that will be fired when any event is emitted.
+     *
+     * @example
+     * const catchAllListener = (event, ...args) => {
+     *   console.log(`got event ${event}`);
+     * }
+     *
+     * socket.onAny(catchAllListener);
+     *
+     * // remove a specific listener
+     * socket.offAny(catchAllListener);
+     *
+     * // or remove all listeners
+     * socket.offAny();
+     *
+     * @param listener
+     */
+    offAny(listener) {
+      if (!this._anyListeners) {
+        return this;
+      }
+      if (listener) {
+        const listeners = this._anyListeners;
+        for (let i = 0; i < listeners.length; i++) {
+          if (listener === listeners[i]) {
+            listeners.splice(i, 1);
+            return this;
+          }
+        }
+      } else {
+        this._anyListeners = [];
+      }
+      return this;
+    }
+    /**
+     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
+     * e.g. to remove listeners.
+     */
+    listenersAny() {
+      return this._anyListeners || [];
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback.
+     *
+     * Note: acknowledgements sent to the server are not included.
+     *
+     * @example
+     * socket.onAnyOutgoing((event, ...args) => {
+     *   console.log(`sent event ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    onAnyOutgoing(listener) {
+      this._anyOutgoingListeners = this._anyOutgoingListeners || [];
+      this._anyOutgoingListeners.push(listener);
+      return this;
+    }
+    /**
+     * Adds a listener that will be fired when any event is emitted. The event name is passed as the first argument to the
+     * callback. The listener is added to the beginning of the listeners array.
+     *
+     * Note: acknowledgements sent to the server are not included.
+     *
+     * @example
+     * socket.prependAnyOutgoing((event, ...args) => {
+     *   console.log(`sent event ${event}`);
+     * });
+     *
+     * @param listener
+     */
+    prependAnyOutgoing(listener) {
+      this._anyOutgoingListeners = this._anyOutgoingListeners || [];
+      this._anyOutgoingListeners.unshift(listener);
+      return this;
+    }
+    /**
+     * Removes the listener that will be fired when any event is emitted.
+     *
+     * @example
+     * const catchAllListener = (event, ...args) => {
+     *   console.log(`sent event ${event}`);
+     * }
+     *
+     * socket.onAnyOutgoing(catchAllListener);
+     *
+     * // remove a specific listener
+     * socket.offAnyOutgoing(catchAllListener);
+     *
+     * // or remove all listeners
+     * socket.offAnyOutgoing();
+     *
+     * @param [listener] - the catch-all listener (optional)
+     */
+    offAnyOutgoing(listener) {
+      if (!this._anyOutgoingListeners) {
+        return this;
+      }
+      if (listener) {
+        const listeners = this._anyOutgoingListeners;
+        for (let i = 0; i < listeners.length; i++) {
+          if (listener === listeners[i]) {
+            listeners.splice(i, 1);
+            return this;
+          }
+        }
+      } else {
+        this._anyOutgoingListeners = [];
+      }
+      return this;
+    }
+    /**
+     * Returns an array of listeners that are listening for any event that is specified. This array can be manipulated,
+     * e.g. to remove listeners.
+     */
+    listenersAnyOutgoing() {
+      return this._anyOutgoingListeners || [];
+    }
+    /**
+     * Notify the listeners for each packet sent
+     *
+     * @param packet
+     *
+     * @private
+     */
+    notifyOutgoingListeners(packet) {
+      if (this._anyOutgoingListeners && this._anyOutgoingListeners.length) {
+        const listeners = this._anyOutgoingListeners.slice();
+        for (const listener of listeners) {
+          listener.apply(this, packet.data);
+        }
+      }
+    }
+  };
+  function Backoff(opts) {
+    opts = opts || {};
+    this.ms = opts.min || 100;
+    this.max = opts.max || 1e4;
+    this.factor = opts.factor || 2;
+    this.jitter = opts.jitter > 0 && opts.jitter <= 1 ? opts.jitter : 0;
+    this.attempts = 0;
+  }
+  Backoff.prototype.duration = function() {
+    var ms = this.ms * Math.pow(this.factor, this.attempts++);
+    if (this.jitter) {
+      var rand = Math.random();
+      var deviation = Math.floor(rand * this.jitter * ms);
+      ms = (Math.floor(rand * 10) & 1) == 0 ? ms - deviation : ms + deviation;
+    }
+    return Math.min(ms, this.max) | 0;
+  };
+  Backoff.prototype.reset = function() {
+    this.attempts = 0;
+  };
+  Backoff.prototype.setMin = function(min) {
+    this.ms = min;
+  };
+  Backoff.prototype.setMax = function(max) {
+    this.max = max;
+  };
+  Backoff.prototype.setJitter = function(jitter) {
+    this.jitter = jitter;
+  };
+  var Manager = class extends Emitter {
+    constructor(uri, opts) {
+      var _a;
+      super();
+      this.nsps = {};
+      this.subs = [];
+      if (uri && "object" === typeof uri) {
+        opts = uri;
+        uri = void 0;
+      }
+      opts = opts || {};
+      opts.path = opts.path || "/socket.io";
+      this.opts = opts;
+      installTimerFunctions(this, opts);
+      this.reconnection(opts.reconnection !== false);
+      this.reconnectionAttempts(opts.reconnectionAttempts || Infinity);
+      this.reconnectionDelay(opts.reconnectionDelay || 1e3);
+      this.reconnectionDelayMax(opts.reconnectionDelayMax || 5e3);
+      this.randomizationFactor((_a = opts.randomizationFactor) !== null && _a !== void 0 ? _a : 0.5);
+      this.backoff = new Backoff({
+        min: this.reconnectionDelay(),
+        max: this.reconnectionDelayMax(),
+        jitter: this.randomizationFactor()
+      });
+      this.timeout(null == opts.timeout ? 2e4 : opts.timeout);
+      this._readyState = "closed";
+      this.uri = uri;
+      const _parser = opts.parser || esm_exports;
+      this.encoder = new _parser.Encoder();
+      this.decoder = new _parser.Decoder();
+      this._autoConnect = opts.autoConnect !== false;
+      if (this._autoConnect)
+        this.open();
+    }
+    reconnection(v) {
+      if (!arguments.length)
+        return this._reconnection;
+      this._reconnection = !!v;
+      if (!v) {
+        this.skipReconnect = true;
+      }
+      return this;
+    }
+    reconnectionAttempts(v) {
+      if (v === void 0)
+        return this._reconnectionAttempts;
+      this._reconnectionAttempts = v;
+      return this;
+    }
+    reconnectionDelay(v) {
+      var _a;
+      if (v === void 0)
+        return this._reconnectionDelay;
+      this._reconnectionDelay = v;
+      (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMin(v);
+      return this;
+    }
+    randomizationFactor(v) {
+      var _a;
+      if (v === void 0)
+        return this._randomizationFactor;
+      this._randomizationFactor = v;
+      (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setJitter(v);
+      return this;
+    }
+    reconnectionDelayMax(v) {
+      var _a;
+      if (v === void 0)
+        return this._reconnectionDelayMax;
+      this._reconnectionDelayMax = v;
+      (_a = this.backoff) === null || _a === void 0 ? void 0 : _a.setMax(v);
+      return this;
+    }
+    timeout(v) {
+      if (!arguments.length)
+        return this._timeout;
+      this._timeout = v;
+      return this;
+    }
+    /**
+     * Starts trying to reconnect if reconnection is enabled and we have not
+     * started reconnecting yet
+     *
+     * @private
+     */
+    maybeReconnectOnOpen() {
+      if (!this._reconnecting && this._reconnection && this.backoff.attempts === 0) {
+        this.reconnect();
+      }
+    }
+    /**
+     * Sets the current transport `socket`.
+     *
+     * @param {Function} fn - optional, callback
+     * @return self
+     * @public
+     */
+    open(fn) {
+      if (~this._readyState.indexOf("open"))
+        return this;
+      this.engine = new Socket(this.uri, this.opts);
+      const socket = this.engine;
+      const self2 = this;
+      this._readyState = "opening";
+      this.skipReconnect = false;
+      const openSubDestroy = on(socket, "open", function() {
+        self2.onopen();
+        fn && fn();
+      });
+      const onError = (err) => {
+        this.cleanup();
+        this._readyState = "closed";
+        this.emitReserved("error", err);
+        if (fn) {
+          fn(err);
+        } else {
+          this.maybeReconnectOnOpen();
+        }
+      };
+      const errorSub = on(socket, "error", onError);
+      if (false !== this._timeout) {
+        const timeout = this._timeout;
+        const timer = this.setTimeoutFn(() => {
+          openSubDestroy();
+          onError(new Error("timeout"));
+          socket.close();
+        }, timeout);
+        if (this.opts.autoUnref) {
+          timer.unref();
+        }
+        this.subs.push(() => {
+          this.clearTimeoutFn(timer);
+        });
+      }
+      this.subs.push(openSubDestroy);
+      this.subs.push(errorSub);
+      return this;
+    }
+    /**
+     * Alias for open()
+     *
+     * @return self
+     * @public
+     */
+    connect(fn) {
+      return this.open(fn);
+    }
+    /**
+     * Called upon transport open.
+     *
+     * @private
+     */
+    onopen() {
+      this.cleanup();
+      this._readyState = "open";
+      this.emitReserved("open");
+      const socket = this.engine;
+      this.subs.push(
+        on(socket, "ping", this.onping.bind(this)),
+        on(socket, "data", this.ondata.bind(this)),
+        on(socket, "error", this.onerror.bind(this)),
+        on(socket, "close", this.onclose.bind(this)),
+        // @ts-ignore
+        on(this.decoder, "decoded", this.ondecoded.bind(this))
+      );
+    }
+    /**
+     * Called upon a ping.
+     *
+     * @private
+     */
+    onping() {
+      this.emitReserved("ping");
+    }
+    /**
+     * Called with data.
+     *
+     * @private
+     */
+    ondata(data) {
+      try {
+        this.decoder.add(data);
+      } catch (e) {
+        this.onclose("parse error", e);
+      }
+    }
+    /**
+     * Called when parser fully decodes a packet.
+     *
+     * @private
+     */
+    ondecoded(packet) {
+      nextTick(() => {
+        this.emitReserved("packet", packet);
+      }, this.setTimeoutFn);
+    }
+    /**
+     * Called upon socket error.
+     *
+     * @private
+     */
+    onerror(err) {
+      this.emitReserved("error", err);
+    }
+    /**
+     * Creates a new socket for the given `nsp`.
+     *
+     * @return {Socket}
+     * @public
+     */
+    socket(nsp, opts) {
+      let socket = this.nsps[nsp];
+      if (!socket) {
+        socket = new Socket2(this, nsp, opts);
+        this.nsps[nsp] = socket;
+      } else if (this._autoConnect && !socket.active) {
+        socket.connect();
+      }
+      return socket;
+    }
+    /**
+     * Called upon a socket close.
+     *
+     * @param socket
+     * @private
+     */
+    _destroy(socket) {
+      const nsps = Object.keys(this.nsps);
+      for (const nsp of nsps) {
+        const socket2 = this.nsps[nsp];
+        if (socket2.active) {
+          return;
+        }
+      }
+      this._close();
+    }
+    /**
+     * Writes a packet.
+     *
+     * @param packet
+     * @private
+     */
+    _packet(packet) {
+      const encodedPackets = this.encoder.encode(packet);
+      for (let i = 0; i < encodedPackets.length; i++) {
+        this.engine.write(encodedPackets[i], packet.options);
+      }
+    }
+    /**
+     * Clean up transport subscriptions and packet buffer.
+     *
+     * @private
+     */
+    cleanup() {
+      this.subs.forEach((subDestroy) => subDestroy());
+      this.subs.length = 0;
+      this.decoder.destroy();
+    }
+    /**
+     * Close the current socket.
+     *
+     * @private
+     */
+    _close() {
+      this.skipReconnect = true;
+      this._reconnecting = false;
+      this.onclose("forced close");
+    }
+    /**
+     * Alias for close()
+     *
+     * @private
+     */
+    disconnect() {
+      return this._close();
+    }
+    /**
+     * Called when:
+     *
+     * - the low-level engine is closed
+     * - the parser encountered a badly formatted packet
+     * - all sockets are disconnected
+     *
+     * @private
+     */
+    onclose(reason, description) {
+      var _a;
+      this.cleanup();
+      (_a = this.engine) === null || _a === void 0 ? void 0 : _a.close();
+      this.backoff.reset();
+      this._readyState = "closed";
+      this.emitReserved("close", reason, description);
+      if (this._reconnection && !this.skipReconnect) {
+        this.reconnect();
+      }
+    }
+    /**
+     * Attempt a reconnection.
+     *
+     * @private
+     */
+    reconnect() {
+      if (this._reconnecting || this.skipReconnect)
+        return this;
+      const self2 = this;
+      if (this.backoff.attempts >= this._reconnectionAttempts) {
+        this.backoff.reset();
+        this.emitReserved("reconnect_failed");
+        this._reconnecting = false;
+      } else {
+        const delay = this.backoff.duration();
+        this._reconnecting = true;
+        const timer = this.setTimeoutFn(() => {
+          if (self2.skipReconnect)
+            return;
+          this.emitReserved("reconnect_attempt", self2.backoff.attempts);
+          if (self2.skipReconnect)
+            return;
+          self2.open((err) => {
+            if (err) {
+              self2._reconnecting = false;
+              self2.reconnect();
+              this.emitReserved("reconnect_error", err);
+            } else {
+              self2.onreconnect();
+            }
+          });
+        }, delay);
+        if (this.opts.autoUnref) {
+          timer.unref();
+        }
+        this.subs.push(() => {
+          this.clearTimeoutFn(timer);
+        });
+      }
+    }
+    /**
+     * Called upon successful reconnect.
+     *
+     * @private
+     */
+    onreconnect() {
+      const attempt = this.backoff.attempts;
+      this._reconnecting = false;
+      this.backoff.reset();
+      this.emitReserved("reconnect", attempt);
+    }
+  };
+  var cache = {};
+  function lookup2(uri, opts) {
+    if (typeof uri === "object") {
+      opts = uri;
+      uri = void 0;
+    }
+    opts = opts || {};
+    const parsed = url(uri, opts.path || "/socket.io");
+    const source = parsed.source;
+    const id = parsed.id;
+    const path = parsed.path;
+    const sameNamespace = cache[id] && path in cache[id]["nsps"];
+    const newConnection = opts.forceNew || opts["force new connection"] || false === opts.multiplex || sameNamespace;
+    let io;
+    if (newConnection) {
+      io = new Manager(source, opts);
+    } else {
+      if (!cache[id]) {
+        cache[id] = new Manager(source, opts);
+      }
+      io = cache[id];
+    }
+    if (parsed.query && !opts.query) {
+      opts.query = parsed.queryKey;
+    }
+    return io.socket(parsed.path, opts);
+  }
+  Object.assign(lookup2, {
+    Manager,
+    Socket: Socket2,
+    io: lookup2,
+    connect: lookup2
+  });
+  var SignalServer = class {
+    params;
+    socket;
+    connected;
+    rooms;
+    onMessage;
+    onConnect;
+    onDisconnect;
+    onJoinRoom;
+    onLeaveRoom;
+    constructor(params) {
+      this.params = params;
+      this.connected = false;
+      this.rooms = /* @__PURE__ */ new Set();
+    }
+    start() {
+      this.socket = lookup2(this.params.host);
+      this.socket.on("connect", () => {
+        this.connected = true;
+        if (this.onConnect) {
+          this.onConnect();
+        }
+      });
+      this.socket.on("message", (e) => {
+        if (this.onMessage) {
+          this.onMessage(e.target, e.data.message);
+        }
+      });
+      this.socket.on("join-room", (e) => {
+        if (e.target == this.socket.id) {
+          this.rooms.add(e.data.room);
+        }
+        if (this.onJoinRoom) {
+          this.onJoinRoom(e.target, e.data.room);
+        }
+      });
+      this.socket.on("leave-room", (e) => {
+        if (e.target == this.socket.id) {
+          this.rooms.delete(e.data.room);
+        }
+        if (this.onLeaveRoom) {
+          this.onLeaveRoom(e.target, e.data.room);
+        }
+      });
+      this.socket.on("disconnect", () => {
+        this.connected = false;
+        if (this.onDisconnect) {
+          this.onDisconnect();
+        }
+      });
+    }
+    sendMessage(to, message) {
+      this.socket.emit("message", {
+        emitType: "single",
+        message,
+        to
+      });
+    }
+    broadcastMessage(message, rooms = []) {
+      this.socket.emit("message", {
+        emitType: "broadcast",
+        message,
+        rooms
+      });
+    }
+    joinRoom(room) {
+      this.socket.emit("room", {
+        action: "join",
+        room
+      });
+    }
+    leaveRoom(room) {
+      this.socket.emit("room", {
+        action: "leave",
+        room
+      });
+    }
+  };
+  var ChannelClientController = class extends Component {
+    _refreshRate;
+    _channelClient;
+    _interval;
+    constructor(params) {
+      super();
+      this._refreshRate = params.refreshRate ?? 1e3 / 30;
+      this._channelClient = new ChannelClient(new SignalServer({ host: params.host }), params.rtcConfig);
+    }
+    start() {
+      this._channelClient.onConnect = () => {
+        this.broadcast({ topic: "connect" });
+      };
+      this._channelClient.onDisconnect = () => {
+        this.broadcast({ topic: "disconnect" });
+      };
+      this._channelClient.onMessage = (client, data) => {
+        data = JSON.parse(data);
+        switch (data.type) {
+          case "data":
+            this.broadcast({ topic: "data", data: data.data });
+            break;
+          case "join":
+            this.broadcast({ topic: "join", socketId: data.socketId });
+            break;
+          case "leave":
+            this.broadcast({ topic: "leave", socketId: data.socketId });
+            break;
+        }
+      };
+      this._interval = setInterval(() => this._updateEntity(), this._refreshRate);
+      this._channelClient.connect();
+    }
+    destroy() {
+      if (this._interval) {
+        clearInterval(this._interval);
+      }
+    }
+    _updateEntity() {
+      if (!this._channelClient.channel.ready) {
+        return;
+      }
+      this._channelClient.channel.send(this._entity.getComponent("Serializer").serialize());
+    }
+  };
+  var ChannelServerConnection = class {
+    socketId;
+    server;
+    localConnection;
+    channel;
+    constructor(socketId, server) {
+      this.socketId = socketId;
+      this.server = server;
+      this.localConnection = new RTCPeerConnection(server.rtcConfig);
+      this.localConnection.onicecandidate = (e) => {
+        server.signalServer.sendMessage(socketId, {
+          type: "candidte",
+          candidate: e.candidate
+        });
+      };
+      const dataChannel = this.localConnection.createDataChannel("main");
+      this.channel = new Channel(dataChannel);
+      this.channel.init();
+      this.channel.onConnect = () => {
+        if (server.onConnect) {
+          server.onConnect(this);
+        }
+      };
+      this.channel.onDisconnect = () => {
+        server.removeConnection(this);
+        if (server.onDisconnect) {
+          server.onDisconnect(this);
+        }
+      };
+      this.channel.onMessage = (data) => {
+        if (server.onMessage) {
+          server.onMessage(this, data);
+        }
+      };
+      this.localConnection.createOffer().then((offer) => this.localConnection.setLocalDescription(offer)).then(() => {
+        server.signalServer.sendMessage(socketId, {
+          type: "offer",
+          offer: this.localConnection.localDescription
+        });
+      });
+    }
+    handleSignalMessage(message) {
+      console.log("Server: Message type " + message.type + " received [" + this.socketId + "]");
+      switch (message.type) {
+        case "answer":
+          this.localConnection.setRemoteDescription(message.answer);
+          break;
+        case "candidate":
+          this.localConnection.addIceCandidate(message.candidate);
+          break;
+      }
+    }
+    get connected() {
+      return this.channel.ready;
+    }
+  };
+  var ChannelServer = class {
+    serverRoom;
+    signalServer;
+    rtcConfig;
+    connections;
+    onStart;
+    onConnect;
+    onDisconnect;
+    onMessage;
+    constructor(serverRoom, signalServer, rtcConfig) {
+      this.serverRoom = serverRoom;
+      this.signalServer = signalServer;
+      this.rtcConfig = rtcConfig;
+      this.connections = [];
+      signalServer.onConnect = () => {
+        console.log("Server: Signal server connected with socket [" + signalServer.socket.id + "]");
+        signalServer.joinRoom(serverRoom);
+        if (this.onStart) {
+          this.onStart();
+        }
+      };
+      signalServer.onJoinRoom = (target, room) => {
+        if (signalServer.socket.id == target || room != this.serverRoom) {
+          return;
+        }
+        console.log("Server: Socket [" + target + "] joined server room");
+        this.createConnection(target);
+      };
+      signalServer.onLeaveRoom = (target, room) => {
+        if (signalServer.socket.id == target || room != this.serverRoom) {
+          return;
+        }
+        console.log("Server: Socket [" + target + "] left server room");
+        const connection = this.connections.find((connection2) => connection2.socketId == target);
+        if (connection) {
+          connection.localConnection.close();
+        }
+      };
+      signalServer.onMessage = (from, message) => {
+        const connection = this.connections.find((connection2) => connection2.socketId == from);
+        if (connection) {
+          connection.handleSignalMessage(message);
+        }
+      };
+    }
+    connect() {
+      this.signalServer.start();
+    }
+    createConnection(socketId) {
+      const connection = new ChannelServerConnection(socketId, this);
+      this.connections.push(connection);
+    }
+    removeConnection(conn) {
+      this.connections.splice(this.connections.indexOf(conn), 1);
+    }
+  };
+  var ChannelServerController = class extends Component {
+    _running;
+    _refreshRate;
+    _channelServer;
+    _interval;
+    _entityData;
+    constructor(params) {
+      super();
+      this._refreshRate = params.refreshRate ?? 1e3 / 30;
+      this._entityData = [];
+      this._running = false;
+      this._channelServer = new ChannelServer(params.room, new SignalServer({
+        host: params.host
+      }), params.rtcConfig);
+    }
+    start() {
+      this._channelServer.onStart = () => {
+        this._running = true;
+      };
+      this._channelServer.onConnect = (connection) => {
+        const entityData = { socketId: connection.socketId };
+        this._entityData.push(entityData);
+        this._sendTextDataToAll({
+          type: "join",
+          socketId: connection.socketId
+        });
+      };
+      this._channelServer.onDisconnect = (connection) => {
+        const entityData = this._entityData.find((item) => item.socketId == connection.socketId);
+        this._entityData.splice(this._entityData.indexOf(entityData), 1);
+        this._sendTextDataToAll({
+          type: "leave",
+          socketId: connection.socketId
+        });
+      };
+      this._channelServer.onMessage = (connection, data) => {
+        const entityData = this._entityData.find((item) => item.socketId == connection.socketId);
+        if (entityData) {
+          entityData.data = JSON.parse(data);
+        }
+      };
+      this._channelServer.connect();
+      this._interval = setInterval(() => {
+        this._updateEntities();
+      }, this._refreshRate);
+    }
+    destroy() {
+      this._running = false;
+      if (this._interval) {
+        clearInterval(this._interval);
+      }
+    }
+    _updateEntities() {
+      if (!this._running) {
+        return;
+      }
+      this._sendTextDataToAll({
+        type: "data",
+        data: this._entityData
+      });
+    }
+    _sendTextData(connection, data) {
+      connection.channel.send(JSON.stringify(data));
+    }
+    _sendTextDataToAll(data) {
+      for (let connection of this._channelServer.connections) {
+        if (!connection.connected) {
+          continue;
+        }
+        this._sendTextData(connection, data);
+      }
+    }
+  };
+  var Transform = class extends Component {
+    constructor() {
+      super();
+      this._parent = null;
+      this._children = /* @__PURE__ */ new Set();
+      this._position = new Vector();
+      this._scale = new Vector(1, 1);
+    }
+    get position() {
+      return this._position;
+    }
+    set position(p) {
+      this._position.copy(p);
+    }
+    get scale() {
+      return this._scale;
+    }
+    set scale(s) {
+      this._scale.copy(s);
+    }
+    getWorldPosition() {
+      if (this._parent) {
+        return this._parent.getWorldPosition().add(this._position);
+      } else {
+        return this._position.clone();
+      }
+    }
+    setParent(parent) {
+      if (this._parent) {
+        this._position.add(this._parent.getWorldPosition());
+      }
+      if (parent) {
+        this._position.sub(parent.getWorldPosition());
+      }
+      this._parent = parent;
+    }
+  };
+  var Entity = class _Entity {
+    static _ids = 0;
+    static genName() {
+      return "_entity_" + this._ids++;
+    }
+    constructor(n) {
+      if (typeof n == "undefined") {
+        this._name = _Entity.genName();
+      } else {
+        this._name = n;
+      }
+      this._groups = /* @__PURE__ */ new Set();
+      this._componentsMap = /* @__PURE__ */ new Map();
+      this._components = [];
+      this._scene = null;
+      this._transform = new Transform();
+      this._handlers = {};
+      this.addComponent("Transform", this._transform);
+    }
+    get name() {
+      return this._name;
+    }
+    get groups() {
+      return this._groups;
+    }
+    get transform() {
+      return this._transform;
+    }
+    addComponent(name, component) {
+      component._entity = this;
+      this._componentsMap.set(name, component);
+      this._components.push(component);
+      return component;
+    }
+    getComponent(n) {
+      return this._componentsMap.get(n);
+    }
+    start() {
+      for (let i = 0; i < this._components.length; ++i) {
+        this._components[i].start();
+      }
+    }
+    update(dt) {
+      for (let i = 0; i < this._components.length; ++i) {
+        this._components[i].update(dt);
+      }
+    }
+    destroy() {
+      for (let i = 0; i < this._components.length; ++i) {
+        this._components[i].destroy();
+      }
+    }
+    registerHandler(name, handler) {
+      if (!(name in this._handlers)) {
+        this._handlers[name] = [];
+      }
+      this._handlers[name].push(handler);
+    }
+    broadcast(msg) {
+      if (!(msg.topic in this._handlers)) {
+        return;
+      }
+      for (let curHandler of this._handlers[msg.topic]) {
+        curHandler(msg);
+      }
+    }
+  };
+  var EntityManager = class {
+    constructor() {
+      this._entities = [];
+      this._entityMap = /* @__PURE__ */ new Map();
+    }
+    add(e) {
+      this._entities.push(e);
+      this._entityMap.set(e.name, e);
+    }
+    get(n) {
+      return this._entityMap.get(n);
+    }
+    remove(e) {
+      const idx = this._entities.indexOf(e);
+      this._entities.splice(idx, 1);
+      this._entityMap.delete(e.name);
+    }
+  };
+  var camera = /* @__PURE__ */ function() {
+    class Camera extends Component {
+      constructor(params) {
+        super();
+        this._viewport = params.viewport;
+        this._wcWidth = params.wcWidth;
+        this._projectionM = Matrix.create();
+        this._viewM = Matrix.create();
+        this._projectionViewM = Matrix.create();
+      }
+      get viewport() {
+        return this._viewport;
+      }
+      set viewport(vp) {
+        this._viewport = vp;
+      }
+      get projection() {
+        return this._projectionM;
+      }
+      get view() {
+        return this._viewM;
+      }
+      get projectionView() {
+        return this._projectionViewM;
+      }
+      getBoundingRect() {
+        const width = this._wcWidth / this._entity.transform.scale.x, height = this._getWCHeight() / this._entity.transform.scale.y;
+        const p = this._entity.transform.position;
+        return { x: p.x - width / 2, y: p.y - height / 2, width, height };
+      }
+      update() {
+        const halfW = this._wcWidth * 0.5 / this._entity.transform.scale.x, halfH = this._getWCHeight() * 0.5 / this._entity.transform.scale.y;
+        Matrix.ortho(this._projectionM, -halfW, halfW, halfH, -halfH, 0, 100);
+        this._viewM[12] = -this._entity.transform.position.x;
+        this._viewM[13] = -this._entity.transform.position.y;
+        Matrix.multiply(this._projectionViewM, this._projectionM, this._viewM);
+      }
+      /**
+       * 
+       * @param {WebGL2RenderingContext} gl 
+       */
+      begin(gl) {
+        const x = this._viewport[0], y = gl.canvas.height - this._viewport[3] - this._viewport[1], w = this._viewport[2], h = this._viewport[3];
+        gl.viewport(x, y, w, h);
+      }
+      _getWCHeight() {
+        return this._wcWidth * this._viewport[3] / this._viewport[2];
+      }
+    }
+    return {
+      Camera
+    };
+  }();
+  var Scene = class {
+    _renderer;
+    constructor() {
+      this._started = false;
+      this._entityManager = new EntityManager();
+      this._pendingEntities = [];
+      this._entitiesToRemove = [];
+      this._camera = {};
+    }
+    get camera() {
+      return this._camera;
+    }
+    get renderer() {
+      return this._renderer;
+    }
+    init() {
+    }
+    createEntity(name) {
+      const e = new Entity(name);
+      if (this._started) {
+        this._pendingEntities.push(e);
+      } else {
+        this._entityManager.add(e);
+        e._scene = this;
+      }
+      return e;
+    }
+    removeEntity(e) {
+      if (this._started) {
+        this._entitiesToRemove.push(e);
+      } else {
+        this._entityManager.remove(e);
+      }
+    }
+    getEntitiesByGroup(g) {
+      return this._entityManager._entities.filter((e) => e.groups.has(g));
+    }
+    getEntityByName(n) {
+      return this._entityManager.get(n);
+    }
+    createCamera(name, params) {
+      const cam = this._camera[name] = new camera.Camera(params);
+      const e = this.createEntity();
+      e.addComponent("camera", cam);
+      e.groups.add("camera");
+      return cam;
+    }
+    start() {
+      this._renderer.start();
+      for (let i = 0; i < this._entityManager._entities.length; ++i) {
+        this._entityManager._entities[i].start();
+      }
+      this._started = true;
+    }
+    update(dt) {
+      for (let i = 0; i < this._entityManager._entities.length; ++i) {
+        this._entityManager._entities[i].update(dt);
+      }
+      while (this._pendingEntities.length > 0) {
+        const e = this._pendingEntities.pop();
+        this._entityManager.add(e);
+        e._scene = this;
+        e.start();
+      }
+      while (this._entitiesToRemove.length > 0) {
+        const e = this._entitiesToRemove.pop();
+        e.destroy();
+        this._entityManager.remove(e);
+      }
+    }
+    render() {
+      for (let attr in this._camera) {
+        this._camera[attr].update();
+      }
+      this._renderer.render();
+    }
+    destroy() {
+      for (let i = 0; i < this._entityManager._entities.length; ++i) {
+        this._entityManager._entities[i].destroy();
+      }
+      this._started = false;
+    }
+  };
+  var lancelot = /* @__PURE__ */ function() {
+    class Lancelot {
+      static _instance = null;
+      _config;
+      _canvas;
+      _lastRAF;
+      _dt;
+      _accTime;
+      _fpsCounter;
+      _fps;
+      _scene;
+      constructor() {
+        this._lastRAF = void 0;
+        this._dt = 0;
+        this._accTime = 0;
+        this._fpsCounter = 0;
+        this._fps = 0;
+        this._scene = null;
+      }
+      static get config() {
+        return this._get()._config;
+      }
+      static _get() {
+        if (this._instance == null) {
+          this._instance = new Lancelot();
+        }
+        return this._instance;
+      }
+      static async init(config) {
+        const _this = this._get();
+        _this._config = config;
+        _this._canvas = new canvas.GLCanvas();
+        config.container.appendChild(_this._canvas.domElement);
+        _this._canvas.setViewportMode(config.viewportMode);
+        _this._canvas.setSize(config.width, config.height);
+        _this._canvas.start();
+        KeyListener._get().start();
+        await config.preload();
+        this.changeScene(config.scene, config.sceneParams);
+        _this._RAF();
+      }
+      static changeScene(scene, params) {
+        const _this = this._get();
+        if (_this._scene) {
+          _this._scene.destroy();
+        }
+        scene._renderer = new renderer.Renderer(_this._canvas.context);
+        scene.createCamera("main", {
+          viewport: [0, 0, _this._config.width, _this._config.height],
+          wcWidth: _this._config.width
+        });
+        scene.init(params);
+        scene.start();
+        _this._scene = scene;
+      }
+      update() {
+        KeyListener._get().update();
+        for (let tex of assets.AssetsManager._textures.values()) {
+          tex.update(this._dt);
+        }
+        this._scene.update(this._dt);
+      }
+      render() {
+        const gl = this._canvas.context;
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        this._scene.renderer.render();
+      }
+      _RAF() {
+        requestAnimationFrame((t) => {
+          this._RAF();
+          t *= 1e-3;
+          this._dt = t - (this._lastRAF || t);
+          this._dt = Math.min(this._dt, 1 / 20);
+          this._lastRAF = t;
+          this._accTime += this._dt;
+          ++this._fpsCounter;
+          if (this._accTime >= 1) {
+            this._accTime = 0;
+            this._fps = this._fpsCounter;
+            this._fpsCounter = 0;
+          }
+          this.update();
+          this.render();
+        });
+      }
+    }
+    return {
+      Lancelot,
+      Scene,
+      Component,
+      graphics: index_exports,
+      utils: index_exports2,
+      math: index_exports3,
+      input: index_exports4,
+      geometry: index_exports5,
+      network: index_exports6
+    };
+  }();
+
+  // script.js
+  var { AssetsManager, loadImage } = lancelot.utils.assets;
+  var { Vector: Vector2 } = lancelot.math;
+  var { ChannelServerController: ChannelServerController2, ChannelClientController: ChannelClientController2 } = lancelot.network;
+  var TILE_SIZE = 16;
+  var TEST_ROOM = "GrottoTest";
+  var SIGNAL_SERVER_HOST = "localhost:8080";
+  var REFRESH_RATE = 1e3 / 60;
+  var RTC_CONFIG = {};
+  var PlayerSerializer = class extends lancelot.Component {
+    serialize() {
+      const controller = this.getComponent("controller");
+      const playerData = {};
+      playerData.position = this._entity.transform.position;
+      playerData.velocity = controller._velocity;
+      playerData.grounded = controller._grounded;
+      playerData.climbing = controller._climbing;
+      playerData.input = controller._input;
+      return JSON.stringify(playerData);
+    }
+  };
+  var Mover = class extends lancelot.Component {
+    constructor() {
+      super();
+      this._velocity = new Vector2();
+      this._grounded = false;
+      this._climbing = false;
+      this._slopes = [];
+    }
+    updatePhysics(dt) {
+      const moveDist = this._velocity.clone().scale(dt);
+      this._grounded = false;
+      this._entity.transform.position.x += moveDist.x;
+      let collider = this.getComponent("collider");
+      let tiles;
+      collider.setPosition(this._entity.transform.position);
+      let rect = collider.shape;
+      let lastRect = collider.shape.clone();
+      if (!this._slopes.length) {
+        tiles = this._getTiles(
+          new Vector2(rect.getLeft(), rect.getTop()),
+          new Vector2(rect.getRight(), rect.getBottom())
+        );
+        tiles = tiles.filter((e) => e.tile && e.tile.getProperty("collide"));
+        for (let tile of tiles) {
+          this._collide(tile, moveDist.x < 0 ? "l" : "r", lastRect);
+        }
+      } else {
+        for (let slope of this._slopes)
+          this._updateSlope(slope);
+      }
+      this._entity.transform.position.y += moveDist.y;
+      collider.setPosition(this._entity.transform.position);
+      tiles = this._getTiles(
+        new Vector2(rect.getLeft(), rect.getTop()),
+        new Vector2(rect.getRight(), rect.getBottom())
+      );
+      tiles = tiles.filter((e) => e.tile && (e.tile.getProperty("collide") || this._isTopLedder(e) && !this._climbing));
+      for (let tile of tiles) {
+        this._collide(tile, moveDist.y < 0 ? "u" : "d", lastRect);
+      }
+    }
+    _isTopLedder(tile) {
+      const tilemap2 = this._entity._scene.getEntityByName("levelMap").getComponent("tilemap");
+      let topTile = tilemap2.tilemap.getLayerByName("midground").getTile(tile.x, tile.y - 1);
+      return tile.tile.getProperty("ledder") && (!topTile || topTile.tile && topTile.tile.getProperty("ledder") == false);
+    }
+    _getTiles(min, max) {
+      let tiles = [];
+      const tilemap2 = this._entity._scene.getEntityByName("levelMap").getComponent("tilemap");
+      let x1 = ~~(min.x / tilemap2.tilemap.tilewidth), x2 = ~~(max.x / tilemap2.tilemap.tilewidth), y1 = ~~(min.y / tilemap2.tilemap.tileheight), y2 = ~~(max.y / tilemap2.tilemap.tileheight);
+      let layers = tilemap2.tilemap.getLayers();
+      let layer = layers.find((e) => e.name == "midground");
+      for (let x = x1; x <= x2; ++x) {
+        for (let y = y1; y <= y2; ++y) {
+          tiles.push({ tile: layer.getTile(x, y), x, y });
+        }
+      }
+      return tiles;
+    }
+    _updateSlope(t) {
+      let collider = this.getComponent("collider");
+      let rect = collider.shape;
+      let y1 = (t.y + 1 - t.tile.getProperty("y1")) * TILE_SIZE, y2 = (t.y + 1 - t.tile.getProperty("y2")) * TILE_SIZE, x1 = t.x * TILE_SIZE, x2 = (t.x + 1) * TILE_SIZE;
+      if ((rect.getLeft() > x2 || rect.getRight() < x1) && (rect.getBottom() >= Math.max(y1, y2) || rect.getBottom() <= Math.min(y1, y2))) {
+        let idx = this._slopes.indexOf(t);
+        this._slopes.splice(idx, 1);
+        return;
+      }
+      let x = y1 < y2 ? rect.getLeft() : rect.getRight();
+      let y = lancelot.math.math.map(y1, y2, x1, x2, lancelot.math.math.clamp(x, x1, x2));
+      this._entity.transform.position.y = y - rect.height / 2;
+      if (rect.getBottom() > y) {
+        this._grounded = true;
+        this._entity.transform.position.y = y - rect.height / 2;
+        this._velocity.y = 0;
+      }
+    }
+    _collide(t, direction, lastRect) {
+      let collider = this.getComponent("collider");
+      let rect = collider.shape;
+      let tileRect = new lancelot.geometry.shape.Rect(TILE_SIZE, TILE_SIZE);
+      tileRect.setPosition((t.x + 0.5) * TILE_SIZE, (t.y + 0.5) * TILE_SIZE);
+      if (!rect.intersects(tileRect)) {
+        return;
+      }
+      if (t.tile.getProperty("slope")) {
+        if (direction != "d") {
+          return;
+        }
+        let collider2 = this.getComponent("collider");
+        let rect2 = collider2.shape;
+        let y1 = (t.y + 1 - t.tile.getProperty("y1")) * TILE_SIZE, y2 = (t.y + 1 - t.tile.getProperty("y2")) * TILE_SIZE, x1 = t.x * TILE_SIZE, x2 = (t.x + 1) * TILE_SIZE;
+        let x = y1 < y2 ? rect2.getLeft() : rect2.getRight();
+        let y = lancelot.math.math.map(y1, y2, x1, x2, lancelot.math.math.clamp(x, x1, x2));
+        if (rect2.getBottom() > y || this._slopes.length) {
+          this._grounded = true;
+          this._slopes.push(t);
+          if (rect2.getBottom() > y) {
+            this._entity.transform.position.y = y - rect2.height / 2;
+            this._velocity.y = 0;
+          }
+        }
+      } else {
+        switch (direction) {
+          case "l":
+            if (rect.getLeft() < tileRect.getRight()) {
+              this._entity.transform.position.x = tileRect.getRight() + rect.width / 2;
+              this._velocity.x = 0;
+            }
+            break;
+          case "r":
+            if (rect.getRight() > tileRect.getLeft()) {
+              this._entity.transform.position.x = tileRect.getLeft() - rect.width / 2;
+              this._velocity.x = 0;
+            }
+            break;
+          case "u":
+            if (!t.tile.getProperty("ledder") && rect.getTop() < tileRect.getBottom()) {
+              this._entity.transform.position.y = tileRect.getBottom() + rect.height / 2;
+              this._velocity.y = 0;
+            }
+            break;
+          case "d":
+            if (rect.getBottom() > tileRect.getTop() && (!t.tile.getProperty("ledder") || lastRect.getBottom() <= tileRect.getTop())) {
+              this._grounded = true;
+              this._entity.transform.position.y = tileRect.getTop() - rect.height / 2;
+              this._velocity.y = 0;
+            }
+            break;
+        }
+      }
+      collider.setPosition(this._entity.transform.position);
+    }
+  };
+  var PlayerController = class extends Mover {
+    constructor(params) {
+      super();
+      this._maxSpeed = 80;
+      this._acceleration = 300;
+      this._jumpForce = 95;
+      this._climbingSpeed = 40;
+      this._gravity = 180;
+      this._idleClimbing = false;
+      this._moving = false;
+      this._input = {
+        left: false,
+        right: false,
+        jump: false,
+        up: false,
+        down: false
+      };
+      this._ledders = [];
+      this._justClimbed = 0;
+      this._remote = params.remote ?? false;
+      this._roomCreated = false;
+    }
+    start() {
+      const sprite = this.getComponent("sprite");
+      sprite.playAnim(lancelot.graphics.Animations.get("player.idle"), true);
+    }
+    update(dt) {
+      if (!this._remote) {
+        this._updateInput();
+      }
+      this._moving = false;
+      if (this._justClimbed > 0) --this._justClimbed;
+      if (!(this._input.up || this._input.down) && this._input.jump && (this._grounded || this._climbing)) {
+        this._grounded = false;
+        this._climbing = false;
+        this._slopes = [];
+        this._velocity.y = -this._jumpForce * (Math.abs(this._velocity.x / this._maxSpeed) * 0.1 + 1);
+      }
+      let collider = this.getComponent("collider");
+      collider.setPosition(this._entity.transform.position);
+      let rect = collider.shape;
+      if (this._climbing) {
+        this._idleClimbing = true;
+        let topLedderRectTop = Infinity;
+        this._ledders.forEach((e) => {
+          let tileRect = new lancelot.geometry.shape.Rect(TILE_SIZE, TILE_SIZE);
+          tileRect.setPosition((e.x + 0.5) * TILE_SIZE, (e.y + 0.5) * TILE_SIZE);
+          if (topLedderRectTop > tileRect.getTop()) {
+            topLedderRectTop = tileRect.getTop();
+          }
+          return rect.intersects(tileRect);
+        });
+        this._ledders = this._getTiles(
+          new Vector2(rect.getLeft() + rect.width / 2, rect.getTop()),
+          new Vector2(rect.getRight() - rect.width / 2, rect.getBottom())
+        ).filter((e) => {
+          let tileRect = new lancelot.geometry.shape.Rect(TILE_SIZE, TILE_SIZE);
+          tileRect.setPosition((e.x + 0.5) * 16, (e.y + 0.5) * TILE_SIZE);
+          return e.tile && e.tile.getProperty("ledder");
+        });
+        if ((this._input.left || this._input.right) && !(this._input.up || this._input.down) || !this._ledders.length) {
+          this._climbing = false;
+          this._velocity.y = 0;
+          if (this._input.up && !this._ledders.length) {
+            this._entity.transform.position.y = topLedderRectTop - rect.height / 2;
+            this._justClimbed = 2;
+          }
+        } else {
+          if (this._input.up) {
+            this._idleClimbing = false;
+            this._velocity.y = -this._climbingSpeed;
+          } else if (this._input.down) {
+            this._idleClimbing = false;
+            this._velocity.y = this._climbingSpeed;
+            if (this._grounded) {
+              this._climbing = false;
+            }
+          } else {
+            this._velocity.y = 0;
+          }
+        }
+      } else {
+        if (this._input.left) {
+          this._moving = true;
+          this._velocity.x -= this._acceleration * dt;
+        } else if (this._input.right) {
+          this._moving = true;
+          this._velocity.x += this._acceleration * dt;
+        }
+        if (this._input.up || this._input.down) {
+          let tiles = this._getTiles(
+            new Vector2(rect.getLeft() + rect.width / 2, rect.getTop()),
+            new Vector2(rect.getRight() - rect.width / 2, rect.getBottom())
+          );
+          this._ledders = tiles.filter((e) => {
+            let tileRect = new lancelot.geometry.shape.Rect(TILE_SIZE, TILE_SIZE);
+            tileRect.setPosition((e.x + 0.5) * 16, (e.y + 0.5) * TILE_SIZE);
+            return e.tile && e.tile.getProperty("ledder") && (this._input.up && tileRect.getTop() < rect.getBottom() || this._input.down && tileRect.getBottom() > rect.getBottom());
+          });
+          if (this._ledders.length) {
+            this._climbing = true;
+            this._velocity.x = 0;
+            this._entity.transform.position.x = (this._ledders[0].x + 0.5) * TILE_SIZE;
+          }
+        }
+        if (!this._moving) {
+          this._velocity.x -= this._velocity.x * Math.min((this._grounded ? 10 : 2.5) * dt, 1);
+        }
+        if (Math.abs(this._velocity.x) > this._maxSpeed) {
+          this._velocity.x = Math.sign(this._velocity.x) * this._maxSpeed;
+        }
+        this._velocity.y += this._gravity * dt;
+      }
+      this._updateSprite();
+      this.updatePhysics(dt);
+    }
+    _updateSprite() {
+      const sprite = this.getComponent("sprite");
+      if (this._climbing || this._justClimbed > 0) {
+        if (!sprite.isAnimPlaying("player.climb"))
+          sprite.playAnim(lancelot.graphics.Animations.get("player.climb"), true);
+        if (this._idleClimbing) {
+          sprite.pauseAnim();
+        } else {
+          sprite.resumeAnim();
+        }
+      } else {
+        if (this._input.left) {
+          this._entity.transform.scale.x = -1;
+        } else if (this._input.right) {
+          this._entity.transform.scale.x = 1;
+        }
+        if (!this._grounded) {
+          if (!sprite.isAnimPlaying("player.jump"))
+            sprite.playAnim(lancelot.graphics.Animations.get("player.jump"), true);
+        } else {
+          if (this._moving) {
+            if (!sprite.isAnimPlaying("player.run"))
+              sprite.playAnim(lancelot.graphics.Animations.get("player.run"), true);
+          } else {
+            if (!sprite.isAnimPlaying("player.idle"))
+              sprite.playAnim(lancelot.graphics.Animations.get("player.idle"), true);
+          }
+        }
+      }
+    }
+    _updateInput() {
+      if (!this._roomCreated && lancelot.input.KeyListener.isPressed("KeyK")) {
+        this._createRoom();
+      }
+      if (lancelot.input.KeyListener.isPressed("KeyJ")) {
+        this._joinRoom();
+      }
+      if (lancelot.input.KeyListener.isPressed("KeyL")) {
+        this._leaveRoom();
+      }
+      this._input.left = lancelot.input.KeyListener.isDown("KeyA");
+      this._input.right = lancelot.input.KeyListener.isDown("KeyD");
+      this._input.up = lancelot.input.KeyListener.isDown("KeyW");
+      this._input.down = lancelot.input.KeyListener.isDown("KeyS");
+      this._input.jump = lancelot.input.KeyListener.isPressed("Space");
+    }
+    _joinRoom() {
+      const client = this.getComponent("client");
+      client._channelClient.joinRoom(TEST_ROOM);
+    }
+    _leaveRoom() {
+      const client = this.getComponent("client");
+      client._channelClient.leaveRoom();
+    }
+    _createRoom() {
+      const serverEntity = this._entity._scene.createEntity("server");
+      serverEntity.addComponent("server", new ChannelServerController2({
+        room: TEST_ROOM,
+        host: SIGNAL_SERVER_HOST,
+        refreshRate: REFRESH_RATE,
+        rtcConfig: RTC_CONFIG
+      }));
+      this._roomCreated = true;
+    }
+  };
+  var CameraControler = class extends lancelot.Component {
+    update(dt) {
+      const player = this._entity._scene.getEntityByName("player");
+      this._entity.transform.position.lerp(player.transform.position, Math.min(dt * 4, 1));
+      const tilemap2 = this._entity._scene.getEntityByName("levelMap").getComponent("tilemap");
+      const camera2 = this._entity.getComponent("camera");
+      const bounds = camera2.getBoundingRect();
+      if (bounds.x + bounds.width > tilemap2.tilemap.width * tilemap2.tilemap.tilewidth) {
+        this._entity.transform.position.x = tilemap2.tilemap.width * tilemap2.tilemap.tilewidth - bounds.width / 2;
+      } else if (bounds.x < 0) {
+        this._entity.transform.position.x = bounds.width / 2;
+      }
+      if (bounds.y + bounds.height > tilemap2.tilemap.height * tilemap2.tilemap.tileheight) {
+        this._entity.transform.position.y = tilemap2.tilemap.height * tilemap2.tilemap.tileheight - bounds.height / 2;
+      } else if (bounds.y < 0) {
+        this._entity.transform.position.y = bounds.height / 2;
+      }
+    }
+  };
+  var MyScene = class extends lancelot.Scene {
+    init() {
+      this.remotePlayers = [];
+      this.camera.main._entity.addComponent("controller", new CameraControler());
+      this.camera.main._entity.transform.scale.set(4, 4);
+      const tilemap2 = lancelot.utils.Store.get("tilemap");
+      const levelMap = this.createEntity("levelMap");
+      levelMap.addComponent("tilemap", new lancelot.graphics.OrthogonalMap(tilemap2));
+      levelMap.addComponent("tilemapRenderer", new lancelot.graphics.OrthogonalMapRenderer({
+        tilemap: tilemap2,
+        tilesets: {
+          "bat": AssetsManager.getImage("bat"),
+          "environment-tiles": AssetsManager.getImage("tileset")
+        },
+        camera: this.camera.main
+      }));
+      levelMap.registerHandler("tilemapObject", (msg) => {
+        let o = msg.object;
+        switch (o.name) {
+          case "player": {
+            let player = this.createPlayer(false, msg.layer.zIndex);
+            this.player = player;
+            player.transform.position.set(o.x, o.y);
+            player.addComponent("Serializer", new PlayerSerializer());
+            player.addComponent("client", new ChannelClientController2({
+              host: SIGNAL_SERVER_HOST,
+              refreshRate: REFRESH_RATE,
+              rtcConfig: RTC_CONFIG
+            }));
+            player.registerHandler("connect", () => {
+              this.onPlayerConnect();
+            });
+            player.registerHandler("disconnect", () => {
+              this.onPlayerDisconnect();
+            });
+            player.registerHandler("data", (msg2) => {
+              this.onPlayerData(msg2.data);
+            });
+            player.registerHandler("join", (msg2) => {
+              if (msg2.socketId == player.getComponent("controller").socketId) {
+                return;
+              }
+              let entity = this.createPlayer(true);
+              entity.getComponent("controller").socketId = msg2.socketId;
+            });
+            player.registerHandler("leave", (msg2) => {
+              const entityToRemove = this.remotePlayers.find((e) => e.getComponent("controller").socketId == msg2.socketId);
+              this.removeEntity(entityToRemove);
+              this.remotePlayers.splice(this.remotePlayers.indexOf(entityToRemove), 1);
+            });
+            break;
+          }
+        }
+      });
+    }
+    onPlayerConnect() {
+      const socketId = this.player.getComponent("client")._channelClient.signalServer.socket.id;
+      this.player.getComponent("controller").socketId = socketId;
+    }
+    onPlayerDisconnect() {
+      for (let entityToRemove of this.remotePlayers) {
+        this.removeEntity(entityToRemove);
+      }
+      this.remotePlayers.length = 0;
+    }
+    onPlayerData(data) {
+      for (let entityData of data) {
+        if (entityData.socketId == this.player.getComponent("controller").socketId) {
+          continue;
+        }
+        let entity = this.remotePlayers.find((e) => e.getComponent("controller").socketId == entityData.socketId);
+        if (!entity) {
+          entity = this.createPlayer(true);
+          entity.getComponent("controller").socketId = entityData.socketId;
+        }
+        if (entityData.data) {
+          const controller = entity.getComponent("controller");
+          entity.transform.position.copy(entityData.data.position);
+          controller._input = entityData.data.input;
+          controller._velocity.copy(entityData.data.velocity);
+          controller._grounded = entityData.data.grounded;
+          controller._climbing = entityData.data.climbing;
+        }
+      }
+    }
+    createPlayer(remote) {
+      const player = remote ? this.createEntity() : this.createEntity("player");
+      player.addComponent("sprite", new lancelot.graphics.AnimatedSpriteDrawable({
+        sprite: new lancelot.graphics.Sprite(AssetsManager.getTexture("player")),
+        size: new Vector2(TILE_SIZE, TILE_SIZE),
+        offset: new Vector2(),
+        zIndex: 2,
+        camera: this.camera.main
+      }));
+      player.addComponent("collider", new lancelot.geometry.Collider({
+        offset: new Vector2(),
+        shape: new lancelot.geometry.shape.Rect(10, 16)
+      }));
+      player.addComponent("controller", new PlayerController({ remote }));
+      if (remote) {
+        this.remotePlayers.push(player);
+      }
+      return player;
+    }
+  };
+  lancelot.Lancelot.init({
+    container: document.body,
+    width: 960,
+    height: 540,
+    scene: new MyScene(),
+    sceneParams: {},
+    viewportMode: "fit",
+    async preload() {
+      AssetsManager.addImage("bat", await loadImage("assets/bat.png"));
+      AssetsManager.addImage("tileset", await loadImage("assets/environment-tiles_extruded.png"));
+      AssetsManager.addImage("player", await loadImage("assets/player.png"));
+      let tilemap2 = await lancelot.graphics.tilemap.Tilemap.loadFromJson("assets/test1.tmj", { "environment-tiles": "assets/environment-tiles.tsj" });
+      lancelot.utils.Store.set("tilemap", tilemap2);
+      lancelot.graphics.Animations.create(
+        "bat.fly",
+        [{ x: 0, y: 0, duration: 0.08 }, { x: 1, y: 0, duration: 0.08 }, { x: 2, y: 0, duration: 0.08 }, { x: 3, y: 0, duration: 0.08 }],
+        16,
+        16,
+        0,
+        0
+      );
+      lancelot.graphics.Animations.create(
+        "player.run",
+        [{ x: 0, y: 0, duration: 0.16 }, { x: 1, y: 0, duration: 0.16 }, { x: 2, y: 0, duration: 0.16 }, { x: 1, y: 0, duration: 0.16 }],
+        16,
+        16,
+        0,
+        0
+      );
+      lancelot.graphics.Animations.create(
+        "player.idle",
+        [{ x: 1, y: 1, duration: 0.16 }],
+        16,
+        16,
+        0,
+        0
+      );
+      lancelot.graphics.Animations.create(
+        "player.jump",
+        [{ x: 0, y: 1, duration: 0.16 }],
+        16,
+        16,
+        0,
+        0
+      );
+      lancelot.graphics.Animations.create(
+        "player.climb",
+        [{ x: 4, y: 0, duration: 0.16 }, { x: 4, y: 1, duration: 0.16 }],
+        16,
+        16,
+        0,
+        0
+      );
+      AssetsManager.createTexture("bat", AssetsManager.getImage("bat"), {
+        anim: lancelot.graphics.Animations.get("bat.fly")
+      }, true);
+      AssetsManager.createTexture("player", AssetsManager.getImage("player"), {}, false);
+    }
+  });
+})();
