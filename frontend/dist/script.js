@@ -1759,6 +1759,7 @@ void main() {
         });
       };
       remoteConnection.ondatachannel = (e) => {
+        console.log("Client: ondatachannel");
         this.channel.channel = e.channel;
         this.channel.init();
       };
@@ -5194,7 +5195,7 @@ void main() {
       if (!this._channelClient.channel.ready) {
         return;
       }
-      this._channelClient.channel.send(this._entity.getComponent("Serializer").serialize());
+      this._channelClient.channel.send(JSON.stringify(this._entity.getComponent("Serializer").serialize()));
     }
   };
   var ChannelServerConnection = class {
@@ -5208,7 +5209,7 @@ void main() {
       this.localConnection = new RTCPeerConnection(server.rtcConfig);
       this.localConnection.onicecandidate = (e) => {
         server.signalServer.sendMessage(socketId, {
-          type: "candidte",
+          type: "candidate",
           candidate: e.candidate
         });
       };
@@ -5746,9 +5747,35 @@ void main() {
   var { ChannelServerController: ChannelServerController2, ChannelClientController: ChannelClientController2 } = lancelot.network;
   var TILE_SIZE = 16;
   var TEST_ROOM = "GrottoTest";
-  var SIGNAL_SERVER_HOST = "localhost:8080";
+  var SIGNAL_SERVER_HOST = "https://grotto-online.onrender.com";
   var REFRESH_RATE = 1e3 / 60;
-  var RTC_CONFIG = {};
+  var RTC_CONFIG = {
+    iceServers: [
+      {
+        urls: "stun:stun.relay.metered.ca:80"
+      },
+      {
+        urls: "turn:global.relay.metered.ca:80",
+        username: "2d1a7bde06e7419a33bccea0",
+        credential: "z6QsgPyvDvCVUg0G"
+      },
+      {
+        urls: "turn:global.relay.metered.ca:80?transport=tcp",
+        username: "2d1a7bde06e7419a33bccea0",
+        credential: "z6QsgPyvDvCVUg0G"
+      },
+      {
+        urls: "turn:global.relay.metered.ca:443",
+        username: "2d1a7bde06e7419a33bccea0",
+        credential: "z6QsgPyvDvCVUg0G"
+      },
+      {
+        urls: "turns:global.relay.metered.ca:443?transport=tcp",
+        username: "2d1a7bde06e7419a33bccea0",
+        credential: "z6QsgPyvDvCVUg0G"
+      }
+    ]
+  };
   var PlayerSerializer = class extends lancelot.Component {
     serialize() {
       const controller = this.getComponent("controller");
@@ -5758,7 +5785,21 @@ void main() {
       playerData.grounded = controller._grounded;
       playerData.climbing = controller._climbing;
       playerData.input = controller._input;
-      return JSON.stringify(playerData);
+      playerData.slopes = controller._slopes;
+      return playerData;
+    }
+    deserialize(data) {
+      const controller = this.getComponent("controller");
+      if (!controller._remoteFirstUpdate) {
+        this._entity.transform.position.set(data.position.x, data.position.y);
+      } else {
+        this._entity.transform.position.lerp(new Vector2(data.position.x, data.position.y), 0.5);
+      }
+      controller._input = data.input;
+      controller._velocity.copy(data.velocity);
+      controller._grounded = data.grounded;
+      controller._climbing = data.climbing;
+      controller._slopes = data.slopes;
     }
   };
   var Mover = class extends lancelot.Component {
@@ -5821,11 +5862,15 @@ void main() {
       return tiles;
     }
     _updateSlope(t) {
+      const tilemap2 = this._entity._scene.getEntityByName("levelMap").getComponent("tilemap");
+      let layers = tilemap2.tilemap.getLayers();
+      let layer = layers.find((e) => e.name == "midground");
+      const tile = layer.getTile(t.x, t.y);
       let collider = this.getComponent("collider");
       let rect = collider.shape;
-      let y1 = (t.y + 1 - t.tile.getProperty("y1")) * TILE_SIZE, y2 = (t.y + 1 - t.tile.getProperty("y2")) * TILE_SIZE, x1 = t.x * TILE_SIZE, x2 = (t.x + 1) * TILE_SIZE;
+      let y1 = (t.y + 1 - tile.getProperty("y1")) * TILE_SIZE, y2 = (t.y + 1 - tile.getProperty("y2")) * TILE_SIZE, x1 = t.x * TILE_SIZE, x2 = (t.x + 1) * TILE_SIZE;
       if ((rect.getLeft() > x2 || rect.getRight() < x1) && (rect.getBottom() >= Math.max(y1, y2) || rect.getBottom() <= Math.min(y1, y2))) {
-        let idx = this._slopes.indexOf(t);
+        let idx = this._slopes.findIndex((s) => s.x == t.x && s.y == t.y);
         this._slopes.splice(idx, 1);
         return;
       }
@@ -5857,7 +5902,7 @@ void main() {
         let y = lancelot.math.math.map(y1, y2, x1, x2, lancelot.math.math.clamp(x, x1, x2));
         if (rect2.getBottom() > y || this._slopes.length) {
           this._grounded = true;
-          this._slopes.push(t);
+          this._slopes.push({ x: t.x, y: t.y });
           if (rect2.getBottom() > y) {
             this._entity.transform.position.y = y - rect2.height / 2;
             this._velocity.y = 0;
@@ -5915,6 +5960,7 @@ void main() {
       this._ledders = [];
       this._justClimbed = 0;
       this._remote = params.remote ?? false;
+      this._remoteFirstUpdate = false;
       this._roomCreated = false;
     }
     start() {
@@ -6118,7 +6164,6 @@ void main() {
             let player = this.createPlayer(false, msg.layer.zIndex);
             this.player = player;
             player.transform.position.set(o.x, o.y);
-            player.addComponent("Serializer", new PlayerSerializer());
             player.addComponent("client", new ChannelClientController2({
               host: SIGNAL_SERVER_HOST,
               refreshRate: REFRESH_RATE,
@@ -6171,12 +6216,9 @@ void main() {
           entity.getComponent("controller").socketId = entityData.socketId;
         }
         if (entityData.data) {
-          const controller = entity.getComponent("controller");
-          entity.transform.position.copy(entityData.data.position);
-          controller._input = entityData.data.input;
-          controller._velocity.copy(entityData.data.velocity);
-          controller._grounded = entityData.data.grounded;
-          controller._climbing = entityData.data.climbing;
+          const serializer = entity.getComponent("Serializer");
+          serializer.deserialize(entityData.data);
+          entity.getComponent("controller")._remoteFirstUpdate = true;
         }
       }
     }
@@ -6194,6 +6236,7 @@ void main() {
         shape: new lancelot.geometry.shape.Rect(10, 16)
       }));
       player.addComponent("controller", new PlayerController({ remote }));
+      player.addComponent("Serializer", new PlayerSerializer());
       if (remote) {
         this.remotePlayers.push(player);
       }

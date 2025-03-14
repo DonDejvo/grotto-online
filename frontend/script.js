@@ -8,7 +8,31 @@ const TEST_ROOM = "GrottoTest";
 const SIGNAL_SERVER_HOST =  "localhost:8080"; //"https://grotto-online.onrender.com";
 const REFRESH_RATE = 1000 / 60;
 const RTC_CONFIG = {
-    
+    iceServers: [
+        {
+          urls: "stun:stun.relay.metered.ca:80",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80",
+          username: "2d1a7bde06e7419a33bccea0",
+          credential: "z6QsgPyvDvCVUg0G",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:80?transport=tcp",
+          username: "2d1a7bde06e7419a33bccea0",
+          credential: "z6QsgPyvDvCVUg0G",
+        },
+        {
+          urls: "turn:global.relay.metered.ca:443",
+          username: "2d1a7bde06e7419a33bccea0",
+          credential: "z6QsgPyvDvCVUg0G",
+        },
+        {
+          urls: "turns:global.relay.metered.ca:443?transport=tcp",
+          username: "2d1a7bde06e7419a33bccea0",
+          credential: "z6QsgPyvDvCVUg0G",
+        },
+    ],
 };
 
 class PlayerSerializer extends lancelot.Component {
@@ -20,7 +44,21 @@ class PlayerSerializer extends lancelot.Component {
         playerData.grounded = controller._grounded;
         playerData.climbing = controller._climbing;
         playerData.input = controller._input;
-        return JSON.stringify(playerData);
+        playerData.slopes = controller._slopes;
+        return playerData;
+    }
+    deserialize(data) {
+        const controller = this.getComponent("controller");
+        if(!controller._remoteFirstUpdate) {
+            this._entity.transform.position.set(data.position.x, data.position.y);
+        } else {
+            this._entity.transform.position.lerp(new Vector(data.position.x, data.position.y), 0.5);
+        }
+        controller._input = data.input;
+        controller._velocity.copy(data.velocity);
+        controller._grounded = data.grounded;
+        controller._climbing = data.climbing;
+        controller._slopes = data.slopes;
     }
 }
 
@@ -118,19 +156,24 @@ class Mover extends lancelot.Component {
     }
 
     _updateSlope(t) {
+        const tilemap = this._entity._scene.getEntityByName("levelMap")
+            .getComponent("tilemap");
+        let layers = tilemap.tilemap.getLayers();
+        let layer = layers.find(e => e.name == "midground");
+        const tile = layer.getTile(t.x, t.y);
 
         let collider = this.getComponent("collider");
         let rect = collider.shape;
 
-        let y1 = (t.y + 1 - t.tile.getProperty("y1")) * TILE_SIZE,
-            y2 = (t.y + 1 - t.tile.getProperty("y2")) * TILE_SIZE,
+        let y1 = (t.y + 1 - tile.getProperty("y1")) * TILE_SIZE,
+            y2 = (t.y + 1 - tile.getProperty("y2")) * TILE_SIZE,
             x1 = t.x * TILE_SIZE,
             x2 = (t.x + 1) * TILE_SIZE;
 
         if ((rect.getLeft() > x2 || rect.getRight() < x1) && (
             rect.getBottom() >= Math.max(y1, y2) || rect.getBottom() <= Math.min(y1, y2))
         ) {
-            let idx = this._slopes.indexOf(t);
+            let idx = this._slopes.findIndex(s => s.x == t.x && s.y == t.y);
             this._slopes.splice(idx, 1);
             return;
         }
@@ -177,7 +220,7 @@ class Mover extends lancelot.Component {
 
             if (rect.getBottom() > y || this._slopes.length) {
                 this._grounded = true;
-                this._slopes.push(t);
+                this._slopes.push({ x: t.x, y: t.y });
                 if (rect.getBottom() > y) {
                     this._entity.transform.position.y = y - rect.height / 2;
                     this._velocity.y = 0;
@@ -242,6 +285,7 @@ class PlayerController extends Mover {
         this._ledders = [];
         this._justClimbed = 0;
         this._remote = params.remote ?? false;
+        this._remoteFirstUpdate = false;
         this._roomCreated = false;
     }
     start() {
@@ -488,7 +532,6 @@ class MyScene extends lancelot.Scene {
                     let player = this.createPlayer(false, msg.layer.zIndex);
                     this.player = player;
                     player.transform.position.set(o.x, o.y);
-                    player.addComponent("Serializer", new PlayerSerializer());
                     player.addComponent("client", new ChannelClientController({
                         host: SIGNAL_SERVER_HOST,
                         refreshRate: REFRESH_RATE,
@@ -546,12 +589,9 @@ class MyScene extends lancelot.Scene {
                 entity.getComponent("controller").socketId = entityData.socketId;
             }
             if (entityData.data) {
-                const controller = entity.getComponent("controller");
-                entity.transform.position.copy(entityData.data.position);
-                controller._input = entityData.data.input;
-                controller._velocity.copy(entityData.data.velocity);
-                controller._grounded = entityData.data.grounded;
-                controller._climbing = entityData.data.climbing;
+                const serializer = entity.getComponent("Serializer");
+                serializer.deserialize(entityData.data);
+                entity.getComponent("controller")._remoteFirstUpdate = true;
             }
         }
     }
@@ -570,6 +610,7 @@ class MyScene extends lancelot.Scene {
             shape: new lancelot.geometry.shape.Rect(10, 16)
         }));
         player.addComponent("controller", new PlayerController({ remote }));
+        player.addComponent("Serializer", new PlayerSerializer());
         if (remote) {
             this.remotePlayers.push(player);
         }
