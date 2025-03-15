@@ -1643,133 +1643,213 @@ void main() {
   };
   var index_exports6 = {};
   __export(index_exports6, {
+    ChannelClient: () => ChannelClient,
     ChannelClientController: () => ChannelClientController,
-    ChannelServerController: () => ChannelServerController
+    ChannelServer: () => ChannelServer,
+    ChannelServerController: () => ChannelServerController,
+    SignalServer: () => SignalServer
   });
   var Channel = class {
-    channel;
-    ready;
+    _channel;
     onConnect;
     onDisconnect;
     onMessage;
-    constructor(channel) {
-      this.channel = channel;
-      this.ready = false;
+    constructor() {
     }
     init() {
-      this.channel.onmessage = (e) => {
+      this._channel.onmessage = (e) => {
         if (this.onMessage) {
           this.onMessage(e.data);
         }
       };
-      this.channel.onopen = () => {
-        this.handleChannelStateChange();
+      this._channel.onopen = () => {
+        this._handleChannelStateChange();
       };
-      this.channel.onclose = () => {
-        this.handleChannelStateChange();
+      this._channel.onclose = () => {
+        this._handleChannelStateChange();
       };
+    }
+    setChannel(channel) {
+      this._channel = channel;
     }
     send(data) {
-      if (this.ready) {
-        this.channel.send(data);
-      } else {
-        console.warn("Channel: Trying to send data but channel is not ready");
-      }
+      this._channel.send(data);
     }
-    handleChannelStateChange() {
-      const state = this.channel.readyState;
+    _handleChannelStateChange() {
+      const state = this._channel.readyState;
       if (state == "open") {
-        this.ready = true;
         if (this.onConnect) {
           this.onConnect();
         }
       } else {
-        this.ready = false;
         if (this.onDisconnect) {
           this.onDisconnect();
         }
       }
     }
+    get connected() {
+      return this._channel && this._channel.readyState == "open";
+    }
   };
-  var ChannelClient = class {
-    serverRoom;
-    signalServer;
-    rtcConfig;
-    remoteConnection;
-    channel;
-    onConnect;
-    onDisconnect;
-    onMessage;
-    constructor(signalServer, rtcConfig) {
-      this.signalServer = signalServer;
-      this.rtcConfig = rtcConfig;
-      this.channel = new Channel();
-      this.serverRoom = null;
-      signalServer.onMessage = (from, message) => {
-        console.log("Client: Message type " + message.type + " received [" + this.signalServer.socket.id + "]");
-        switch (message.type) {
-          case "offer":
-            this.handleOffer(from, message.offer);
-            break;
-          case "candidate":
-            this.remoteConnection.addIceCandidate(message.candidate);
-            break;
+  var ChannelClient = class _ChannelClient {
+    static STATE_DISCONNECTED = "disconnected";
+    static STATE_CONNECTED = "connected";
+    static STATE_READY = "ready";
+    _signalServer;
+    _rtcConfig;
+    _state;
+    _roomName;
+    _appName;
+    _remoteConnection;
+    _orderedChannel;
+    _unorderedChannel;
+    onStateChange;
+    onOpen;
+    onClose;
+    onOrderedMessage;
+    onUnorderedMessage;
+    constructor(signalServer, rtcConfig, appName) {
+      this._signalServer = signalServer;
+      this._rtcConfig = rtcConfig;
+      this._appName = appName;
+      this._state = _ChannelClient.STATE_DISCONNECTED;
+      this._signalServer.onConnect = () => {
+        this._handleSignalServerConnect();
+      };
+      this._signalServer.onMessage = (from, message) => {
+        this._handleSignalServerMessage(from, message);
+      };
+      this._signalServer.onDisconnect = () => {
+        this._handleSignalServerDisconnect();
+      };
+      this._orderedChannel = new Channel();
+      this._unorderedChannel = new Channel();
+      this._orderedChannel.onConnect = () => {
+        this._handleChannelConnect();
+      };
+      this._orderedChannel.onDisconnect = () => {
+        this._handleChannelDisconnect();
+      };
+      this._orderedChannel.onMessage = (data) => {
+        if (this.onOrderedMessage) {
+          this.onOrderedMessage(data);
         }
       };
-      this.channel.onConnect = () => {
-        console.log("Client: Connected to the channel [" + signalServer.socket.id + "]");
-        if (this.onConnect) {
-          this.onConnect(this);
-        }
+      this._unorderedChannel.onConnect = () => {
+        this._handleChannelConnect();
       };
-      this.channel.onDisconnect = () => {
-        console.log("Client: Disconnected from the channel [" + signalServer.socket.id + "]");
-        if (this.onDisconnect) {
-          this.onDisconnect(this);
-        }
+      this._unorderedChannel.onDisconnect = () => {
+        this._handleChannelDisconnect();
       };
-      this.channel.onMessage = (data) => {
-        if (this.onMessage) {
-          this.onMessage(this, data);
+      this._unorderedChannel.onMessage = (data) => {
+        if (this.onUnorderedMessage) {
+          this.onUnorderedMessage(data);
         }
       };
     }
-    joinRoom(room) {
-      this.serverRoom = room;
-      this.signalServer.joinRoom(room);
+    start() {
+      this._signalServer.connect();
+    }
+    stop() {
+      this._signalServer.disconnect();
+    }
+    joinRoom(roomName) {
+      if (this._state != _ChannelClient.STATE_CONNECTED) {
+        console.log("Cannot join room while in state " + this._state);
+        return;
+      }
+      this._roomName = roomName;
+      this._signalServer.joinRoom(this._roomName);
     }
     leaveRoom() {
-      if (this.serverRoom) {
-        this.signalServer.leaveRoom(this.serverRoom);
-        this.serverRoom = null;
+      if (this._state != _ChannelClient.STATE_READY) {
+        console.log("Cannot leave room while in state " + this._state);
+        return;
       }
-      if (this.remoteConnection) {
-        this.remoteConnection.close();
+      this._signalServer.leaveRoom(this._roomName);
+    }
+    getRooms() {
+      return this._signalServer.getRooms(this._appName);
+    }
+    sendOrderedText(text) {
+      this._orderedChannel.send(text);
+    }
+    sendUnorderedText(text) {
+      this._unorderedChannel.send(text);
+    }
+    _handleSignalServerConnect() {
+      this._state = _ChannelClient.STATE_CONNECTED;
+      if (this.onStateChange) {
+        this.onStateChange(this);
       }
     }
-    connect() {
-      this.signalServer.start();
+    _handleSignalServerDisconnect() {
+      this._state = _ChannelClient.STATE_DISCONNECTED;
+      if (this.onStateChange) {
+        this.onStateChange(this);
+      }
     }
-    handleOffer(from, offer) {
-      const remoteConnection = new RTCPeerConnection(this.rtcConfig);
-      remoteConnection.onicecandidate = (e) => {
-        this.signalServer.sendMessage(from, {
+    _handleSignalServerMessage(from, message) {
+      switch (message.type) {
+        case "offer":
+          this._createConnection(from, message.offer);
+          break;
+        case "candidate":
+          this._remoteConnection.addIceCandidate(message.candidate);
+          break;
+      }
+    }
+    _createConnection(socketId, offer) {
+      this._remoteConnection = new RTCPeerConnection(this._rtcConfig);
+      this._remoteConnection.onicecandidate = (e) => {
+        this._signalServer.sendMessage(socketId, {
           type: "candidate",
           candidate: e.candidate
         });
       };
-      remoteConnection.ondatachannel = (e) => {
-        console.log("Client: ondatachannel");
-        this.channel.channel = e.channel;
-        this.channel.init();
+      this._remoteConnection.ondatachannel = (e) => {
+        if (e.channel.label == "ordered") {
+          this._orderedChannel.setChannel(e.channel);
+          this._orderedChannel.init();
+        } else if (e.channel.label == "unordered") {
+          this._unorderedChannel.setChannel(e.channel);
+          this._unorderedChannel.init();
+        }
       };
-      remoteConnection.setRemoteDescription(offer).then(() => remoteConnection.createAnswer()).then((answer) => remoteConnection.setLocalDescription(answer)).then(() => {
-        this.signalServer.sendMessage(from, {
+      this._remoteConnection.setRemoteDescription(offer).then(() => this._remoteConnection.createAnswer()).then((answer) => this._remoteConnection.setLocalDescription(answer)).then(() => {
+        this._signalServer.sendMessage(socketId, {
           type: "answer",
-          answer: remoteConnection.localDescription
+          answer: this._remoteConnection.localDescription
         });
       });
-      this.remoteConnection = remoteConnection;
+    }
+    _handleChannelConnect() {
+      if (this._orderedChannel.connected && this._unorderedChannel.connected) {
+        this._state = _ChannelClient.STATE_READY;
+        if (this.onOpen) {
+          this.onOpen(this);
+        }
+        if (this.onStateChange) {
+          this.onStateChange(this);
+        }
+      }
+    }
+    _handleChannelDisconnect() {
+      if (this._orderedChannel.connected || this._unorderedChannel.connected) {
+        this._state = _ChannelClient.STATE_CONNECTED;
+        if (this.onClose) {
+          this.onClose(this);
+        }
+        if (this.onStateChange) {
+          this.onStateChange(this);
+        }
+      }
+    }
+    get state() {
+      return this._state;
+    }
+    get socketId() {
+      return this._signalServer._socket.id;
     }
   };
   var PACKET_TYPES = /* @__PURE__ */ Object.create(null);
@@ -5076,311 +5156,471 @@ void main() {
     connect: lookup2
   });
   var SignalServer = class {
-    params;
-    socket;
-    connected;
-    rooms;
+    _host;
+    _socket;
+    _connected;
     onMessage;
     onConnect;
     onDisconnect;
+    onCreateRoom;
+    onDeleteRoom;
     onJoinRoom;
     onLeaveRoom;
-    constructor(params) {
-      this.params = params;
-      this.connected = false;
-      this.rooms = /* @__PURE__ */ new Set();
+    onError;
+    constructor(host) {
+      this._host = host;
+      this._connected = false;
     }
-    start() {
-      this.socket = lookup2(this.params.host);
-      this.socket.on("connect", () => {
-        this.connected = true;
+    connect() {
+      this._socket = lookup2(this._host);
+      this._socket.on("connect", () => {
+        this._connected = true;
         if (this.onConnect) {
           this.onConnect();
         }
       });
-      this.socket.on("message", (e) => {
+      this._socket.on("message", (e) => {
         if (this.onMessage) {
-          this.onMessage(e.target, e.data.message);
+          this.onMessage(e.from, e.data);
         }
       });
-      this.socket.on("join-room", (e) => {
-        if (e.target == this.socket.id) {
-          this.rooms.add(e.data.room);
-        }
+      this._socket.on("join-room", (e) => {
         if (this.onJoinRoom) {
-          this.onJoinRoom(e.target, e.data.room);
+          this.onJoinRoom(e.from, e.data.room);
         }
       });
-      this.socket.on("leave-room", (e) => {
-        if (e.target == this.socket.id) {
-          this.rooms.delete(e.data.room);
-        }
+      this._socket.on("leave-room", (e) => {
         if (this.onLeaveRoom) {
-          this.onLeaveRoom(e.target, e.data.room);
+          this.onLeaveRoom(e.from, e.data.room);
         }
       });
-      this.socket.on("disconnect", () => {
-        this.connected = false;
+      this._socket.on("create-room", (e) => {
+        if (this.onCreateRoom) {
+          this.onCreateRoom(e.data.room);
+        }
+      });
+      this._socket.on("delete-room", (e) => {
+        if (this.onDeleteRoom) {
+          this.onDeleteRoom(e.data.room);
+        }
+      });
+      this._socket.on("disconnect", () => {
+        this._connected = false;
         if (this.onDisconnect) {
           this.onDisconnect();
         }
       });
+      this._socket.on("error", (e) => {
+        console.log("Error: " + e.data.message);
+        if (this.onError) {
+          this.onError(e.data);
+        }
+      });
+    }
+    disconnect() {
+      if (this._socket) {
+        this._socket.disconnect();
+      }
     }
     sendMessage(to, message) {
-      this.socket.emit("message", {
-        emitType: "single",
+      this._socket.emit("message", {
         message,
         to
       });
     }
-    broadcastMessage(message, rooms = []) {
-      this.socket.emit("message", {
-        emitType: "broadcast",
-        message,
-        rooms
+    createRoom(roomName, appName, description) {
+      this._socket.emit("create-room", {
+        room: roomName,
+        appName,
+        description
       });
     }
-    joinRoom(room) {
-      this.socket.emit("room", {
-        action: "join",
-        room
+    joinRoom(roomName) {
+      this._socket.emit("join-room", {
+        room: roomName
       });
     }
-    leaveRoom(room) {
-      this.socket.emit("room", {
-        action: "leave",
-        room
+    leaveRoom(roomName) {
+      this._socket.emit("leave-room", {
+        room: roomName
+      });
+    }
+    deleteRoom(roomName) {
+      this._socket.emit("delete-room", {
+        room: roomName
+      });
+    }
+    getRooms(appName) {
+      return new Promise((resolve) => {
+        this._socket.once("list-rooms", (e) => {
+          resolve(e.data.rooms);
+        });
+        this._socket.emit("list-rooms", { appName });
       });
     }
   };
   var ChannelClientController = class extends Component {
-    _refreshRate;
+    _updateRate;
     _channelClient;
     _interval;
+    _pingInterval;
+    _serializer;
+    _serialNumber;
     constructor(params) {
       super();
-      this._refreshRate = params.refreshRate ?? 1e3 / 30;
-      this._channelClient = new ChannelClient(new SignalServer({ host: params.host }), params.rtcConfig);
-    }
-    start() {
-      this._channelClient.onConnect = () => {
+      this._updateRate = params.updateRate ?? 1e3 / 60;
+      this._serializer = params.serializer;
+      this._serialNumber = 0;
+      this._channelClient = new ChannelClient(new SignalServer(params.host), params.rtcConfig, params.appName);
+      this._channelClient.onOpen = () => {
         this.broadcast({ topic: "connect" });
       };
-      this._channelClient.onDisconnect = () => {
+      this._channelClient.onClose = () => {
         this.broadcast({ topic: "disconnect" });
       };
-      this._channelClient.onMessage = (client, data) => {
-        data = JSON.parse(data);
+      this._channelClient.onOrderedMessage = (text) => {
+        const data = JSON.parse(text);
         switch (data.type) {
-          case "data":
-            this.broadcast({ topic: "data", data: data.data });
-            break;
           case "join":
             this.broadcast({ topic: "join", socketId: data.socketId });
             break;
           case "leave":
             this.broadcast({ topic: "leave", socketId: data.socketId });
             break;
+          case "pong":
+            this.broadcast({ topic: "ping", value: Date.now() - data.timestamp });
+            break;
         }
       };
-      this._interval = setInterval(() => this._updateEntity(), this._refreshRate);
-      this._channelClient.connect();
+      this._channelClient.onUnorderedMessage = (text) => {
+        const data = JSON.parse(text);
+        switch (data.type) {
+          case "data":
+            this.broadcast({ topic: "data", data: data.data });
+            break;
+        }
+      };
+    }
+    start() {
+      this._interval = setInterval(() => {
+        this._sendEntityData();
+      }, this._updateRate);
+      this._pingInterval = setInterval(() => {
+        if (this._channelClient.state != "ready") {
+          return;
+        }
+        this._channelClient.sendOrderedText(JSON.stringify({
+          type: "ping",
+          timestamp: Date.now()
+        }));
+      }, 1e3);
+      this._channelClient.start();
     }
     destroy() {
       if (this._interval) {
         clearInterval(this._interval);
       }
+      if (this._pingInterval) {
+        clearInterval(this._pingInterval);
+      }
+      this._channelClient.stop();
     }
-    _updateEntity() {
-      if (!this._channelClient.channel.ready) {
+    _sendEntityData() {
+      if (this._channelClient.state != "ready") {
         return;
       }
-      this._channelClient.channel.send(JSON.stringify(this._entity.getComponent("Serializer").serialize()));
+      const data = this._serializer.serialize();
+      data._serialNumber = ++this._serialNumber;
+      this._channelClient.sendUnorderedText(JSON.stringify(data));
     }
   };
   var ChannelServerConnection = class {
-    socketId;
-    server;
-    localConnection;
-    channel;
-    constructor(socketId, server) {
-      this.socketId = socketId;
-      this.server = server;
-      this.localConnection = new RTCPeerConnection(server.rtcConfig);
-      this.localConnection.onicecandidate = (e) => {
-        server.signalServer.sendMessage(socketId, {
+    _server;
+    _socketId;
+    _localConnection;
+    _orderedChannel;
+    _unorderedChannel;
+    constructor(server, socketId) {
+      this._server = server;
+      this._socketId = socketId;
+      this._localConnection = new RTCPeerConnection(this._server._rtcConfig);
+      this._localConnection.onicecandidate = (e) => {
+        this._server._signalServer.sendMessage(this._socketId, {
           type: "candidate",
           candidate: e.candidate
         });
       };
-      const dataChannel = this.localConnection.createDataChannel("main");
-      this.channel = new Channel(dataChannel);
-      this.channel.init();
-      this.channel.onConnect = () => {
-        if (server.onConnect) {
-          server.onConnect(this);
+      this._orderedChannel = new Channel();
+      this._orderedChannel.setChannel(this._localConnection.createDataChannel("ordered", {
+        ordered: true
+      }));
+      this._orderedChannel.onConnect = () => {
+        this._handleChannelConnect();
+      };
+      this._orderedChannel.onDisconnect = () => {
+        this._handleChannelDisconnect();
+      };
+      this._orderedChannel.onMessage = (data) => {
+        if (this._server.onOrderedMessage) {
+          this._server.onOrderedMessage(this, data);
         }
       };
-      this.channel.onDisconnect = () => {
-        server.removeConnection(this);
-        if (server.onDisconnect) {
-          server.onDisconnect(this);
+      this._orderedChannel.init();
+      this._unorderedChannel = new Channel();
+      this._unorderedChannel.setChannel(this._localConnection.createDataChannel("unordered", {
+        ordered: false,
+        maxPacketLifeTime: this._server._maxPacketLifeTime
+      }));
+      this._unorderedChannel.onConnect = () => {
+        this._handleChannelConnect();
+      };
+      this._unorderedChannel.onDisconnect = () => {
+        this._handleChannelDisconnect();
+      };
+      this._unorderedChannel.onMessage = (data) => {
+        if (this._server.onUnorderedMessage) {
+          this._server.onUnorderedMessage(this, data);
         }
       };
-      this.channel.onMessage = (data) => {
-        if (server.onMessage) {
-          server.onMessage(this, data);
-        }
-      };
-      this.localConnection.createOffer().then((offer) => this.localConnection.setLocalDescription(offer)).then(() => {
-        server.signalServer.sendMessage(socketId, {
+      this._unorderedChannel.init();
+      this._localConnection.createOffer().then((offer) => this._localConnection.setLocalDescription(offer)).then(() => {
+        this._server._signalServer.sendMessage(socketId, {
           type: "offer",
-          offer: this.localConnection.localDescription
+          offer: this._localConnection.localDescription
         });
       });
     }
-    handleSignalMessage(message) {
-      console.log("Server: Message type " + message.type + " received [" + this.socketId + "]");
+    sendOrderedText(text) {
+      this._orderedChannel.send(text);
+    }
+    sendUnorderedText(text) {
+      this._unorderedChannel.send(text);
+    }
+    close() {
+      this._localConnection.close();
+    }
+    _handleSignalServerMessage(from, message) {
       switch (message.type) {
         case "answer":
-          this.localConnection.setRemoteDescription(message.answer);
+          this._localConnection.setRemoteDescription(message.answer);
           break;
         case "candidate":
-          this.localConnection.addIceCandidate(message.candidate);
+          this._localConnection.addIceCandidate(message.candidate);
           break;
+      }
+    }
+    _handleChannelConnect() {
+      if (this.connected) {
+        if (this._server.onClientConnect) {
+          this._server.onClientConnect(this);
+        }
+      }
+    }
+    _handleChannelDisconnect() {
+      if (this._orderedChannel.connected || this._unorderedChannel.connected) {
+        if (this._server.onClientDisconnect) {
+          this._server.onClientDisconnect(this);
+        }
       }
     }
     get connected() {
-      return this.channel.ready;
+      return this._orderedChannel.connected && this._unorderedChannel.connected;
+    }
+    get socketId() {
+      return this._socketId;
     }
   };
-  var ChannelServer = class {
-    serverRoom;
-    signalServer;
-    rtcConfig;
-    connections;
-    onStart;
-    onConnect;
-    onDisconnect;
-    onMessage;
-    constructor(serverRoom, signalServer, rtcConfig) {
-      this.serverRoom = serverRoom;
-      this.signalServer = signalServer;
-      this.rtcConfig = rtcConfig;
-      this.connections = [];
-      signalServer.onConnect = () => {
-        console.log("Server: Signal server connected with socket [" + signalServer.socket.id + "]");
-        signalServer.joinRoom(serverRoom);
-        if (this.onStart) {
-          this.onStart();
-        }
+  var ChannelServer = class _ChannelServer {
+    static STATE_DISCONNECTED = "disconnected";
+    static STATE_CONNECTED = "connected";
+    static STATE_READY = "ready";
+    _signalServer;
+    _rtcConfig;
+    _maxPacketLifeTime;
+    _room;
+    _connections;
+    _state;
+    onStateChange;
+    onClientConnect;
+    onClientDisconnect;
+    onOrderedMessage;
+    onUnorderedMessage;
+    constructor(signalServer, rtcConfig, room) {
+      this._signalServer = signalServer;
+      this._rtcConfig = rtcConfig;
+      this._room = room;
+      this._maxPacketLifeTime = 250;
+      this._connections = [];
+      this._state = _ChannelServer.STATE_DISCONNECTED;
+      this._signalServer.onConnect = () => {
+        this._onSignalServerConnect();
       };
-      signalServer.onJoinRoom = (target, room) => {
-        if (signalServer.socket.id == target || room != this.serverRoom) {
-          return;
-        }
-        console.log("Server: Socket [" + target + "] joined server room");
-        this.createConnection(target);
+      this._signalServer.onDisconnect = () => {
+        this._onSignalServerDisconnect();
       };
-      signalServer.onLeaveRoom = (target, room) => {
-        if (signalServer.socket.id == target || room != this.serverRoom) {
-          return;
-        }
-        console.log("Server: Socket [" + target + "] left server room");
-        const connection = this.connections.find((connection2) => connection2.socketId == target);
+      this._signalServer.onCreateRoom = (room2) => {
+        this._onSignalServerCreateRoom(room2);
+      };
+      this._signalServer.onDeleteRoom = (room2) => {
+        this._onSignalServerDeleteRoom(room2);
+      };
+      this._signalServer.onJoinRoom = (socketId, room2) => {
+        this._onSignalServerJoinRoom(socketId, room2);
+      };
+      this._signalServer.onLeaveRoom = (socketId, room2) => {
+        this._onSignalServerLeaveRoom(socketId, room2);
+      };
+      this._signalServer.onMessage = (from, message) => {
+        const connection = this._connections.find((connection2) => connection2._socketId == from);
         if (connection) {
-          connection.localConnection.close();
+          connection._handleSignalServerMessage(from, message);
         }
       };
-      signalServer.onMessage = (from, message) => {
-        const connection = this.connections.find((connection2) => connection2.socketId == from);
-        if (connection) {
-          connection.handleSignalMessage(message);
-        }
-      };
-    }
-    connect() {
-      this.signalServer.start();
-    }
-    createConnection(socketId) {
-      const connection = new ChannelServerConnection(socketId, this);
-      this.connections.push(connection);
-    }
-    removeConnection(conn) {
-      this.connections.splice(this.connections.indexOf(conn), 1);
-    }
-  };
-  var ChannelServerController = class extends Component {
-    _running;
-    _refreshRate;
-    _channelServer;
-    _interval;
-    _entityData;
-    constructor(params) {
-      super();
-      this._refreshRate = params.refreshRate ?? 1e3 / 30;
-      this._entityData = [];
-      this._running = false;
-      this._channelServer = new ChannelServer(params.room, new SignalServer({
-        host: params.host
-      }), params.rtcConfig);
     }
     start() {
-      this._channelServer.onStart = () => {
-        this._running = true;
-      };
-      this._channelServer.onConnect = (connection) => {
-        const entityData = { socketId: connection.socketId };
-        this._entityData.push(entityData);
-        this._sendTextDataToAll({
-          type: "join",
-          socketId: connection.socketId
-        });
-      };
-      this._channelServer.onDisconnect = (connection) => {
-        const entityData = this._entityData.find((item) => item.socketId == connection.socketId);
-        this._entityData.splice(this._entityData.indexOf(entityData), 1);
-        this._sendTextDataToAll({
-          type: "leave",
-          socketId: connection.socketId
-        });
-      };
-      this._channelServer.onMessage = (connection, data) => {
-        const entityData = this._entityData.find((item) => item.socketId == connection.socketId);
-        if (entityData) {
-          entityData.data = JSON.parse(data);
-        }
-      };
-      this._channelServer.connect();
-      this._interval = setInterval(() => {
-        this._updateEntities();
-      }, this._refreshRate);
+      this._signalServer.connect();
     }
-    destroy() {
-      this._running = false;
-      if (this._interval) {
-        clearInterval(this._interval);
-      }
+    stop() {
+      this._signalServer.deleteRoom(this._room.name);
     }
-    _updateEntities() {
-      if (!this._running) {
-        return;
-      }
-      this._sendTextDataToAll({
-        type: "data",
-        data: this._entityData
-      });
-    }
-    _sendTextData(connection, data) {
-      connection.channel.send(JSON.stringify(data));
-    }
-    _sendTextDataToAll(data) {
-      for (let connection of this._channelServer.connections) {
+    sendUnorderedText(text) {
+      for (let connection of this._connections) {
         if (!connection.connected) {
           continue;
         }
-        this._sendTextData(connection, data);
+        connection.sendUnorderedText(text);
       }
+    }
+    sendOrderedText(text) {
+      for (let connection of this._connections) {
+        if (!connection.connected) {
+          continue;
+        }
+        connection.sendOrderedText(text);
+      }
+    }
+    _onSignalServerConnect() {
+      this._state = _ChannelServer.STATE_CONNECTED;
+      if (this.onStateChange) {
+        this.onStateChange(this);
+      }
+      this._signalServer.createRoom(this._room.name, this._room.appName, this._room.description);
+    }
+    _onSignalServerCreateRoom(room) {
+      if (room != this._room.name) {
+        return;
+      }
+      this._state = _ChannelServer.STATE_READY;
+      if (this.onStateChange) {
+        this.onStateChange(this);
+      }
+    }
+    _onSignalServerDeleteRoom(room) {
+      if (room != this._room.name) {
+        return;
+      }
+      this._state = _ChannelServer.STATE_CONNECTED;
+      if (this.onStateChange) {
+        this.onStateChange(this);
+      }
+      this._signalServer.disconnect();
+    }
+    _onSignalServerDisconnect() {
+      this._state = _ChannelServer.STATE_DISCONNECTED;
+      if (this.onStateChange) {
+        this.onStateChange(this);
+      }
+    }
+    _onSignalServerJoinRoom(socketId, room) {
+      if (room != this._room.name || this._signalServer._socket.id == socketId) {
+        return;
+      }
+      const connection = new ChannelServerConnection(this, socketId);
+      this._connections.push(connection);
+    }
+    _onSignalServerLeaveRoom(socketId, room) {
+      if (room != this._room.name || this._signalServer._socket.id == socketId) {
+        return;
+      }
+      const connection = this._connections.find((connection2) => connection2._socketId == socketId);
+      if (connection) {
+        connection.close();
+        this._connections.splice(this._connections.indexOf(connection), 1);
+      }
+    }
+    get state() {
+      return this._state;
+    }
+  };
+  var ChannelServerController = class extends Component {
+    _updateRate;
+    _interval;
+    _channelServer;
+    _entityData;
+    constructor(params) {
+      super();
+      this._updateRate = params.updateRate ?? 1e3 / 60;
+      this._entityData = [];
+      this._channelServer = new ChannelServer(new SignalServer(params.host), params.rtcConfig, params.room);
+      this._channelServer.onClientConnect = (connection) => {
+        const entry = {
+          socketId: connection.socketId
+        };
+        this._entityData.push(entry);
+        this._channelServer.sendOrderedText(JSON.stringify({
+          type: "join",
+          socketId: connection.socketId
+        }));
+      };
+      this._channelServer.onUnorderedMessage = (connection, text) => {
+        const data = JSON.parse(text);
+        const entry = this._entityData.find((entry2) => entry2.socketId == connection.socketId);
+        if (entry) {
+          entry.data = data;
+        }
+      };
+      this._channelServer.onOrderedMessage = (connection, text) => {
+        const data = JSON.parse(text);
+        switch (data.type) {
+          case "ping":
+            connection.sendOrderedText(JSON.stringify({
+              type: "pong",
+              timestamp: data.timestamp
+            }));
+            break;
+        }
+      };
+      this._channelServer.onClientDisconnect = (connection) => {
+        const entry = this._entityData.find((entry2) => entry2.socketId == connection.socketId);
+        if (entry) {
+          this._entityData.splice(this._entityData.indexOf(entry), 1);
+          this._channelServer.sendOrderedText(JSON.stringify({
+            type: "leave",
+            socketId: connection.socketId
+          }));
+        }
+      };
+    }
+    start() {
+      this._interval = setInterval(() => {
+        this._sendEntityData();
+      }, this._updateRate);
+      this._channelServer.start();
+    }
+    destroy() {
+      if (this._interval) {
+        clearInterval(this._interval);
+      }
+      this._channelServer.stop();
+    }
+    _sendEntityData() {
+      if (this._channelServer.state != "ready") {
+        return;
+      }
+      this._channelServer.sendUnorderedText(JSON.stringify({
+        type: "data",
+        data: this._entityData
+      }));
     }
   };
   var Transform = class extends Component {
@@ -5747,6 +5987,7 @@ void main() {
   var { ChannelServerController: ChannelServerController2, ChannelClientController: ChannelClientController2 } = lancelot.network;
   var TILE_SIZE = 16;
   var TEST_ROOM = "GrottoTest";
+  var APP_NAME = "Grotto";
   var SIGNAL_SERVER_HOST = "https://grotto-online.onrender.com";
   var REFRESH_RATE = 1e3 / 60;
   var RTC_CONFIG = {
@@ -5902,7 +6143,10 @@ void main() {
         let y = lancelot.math.math.map(y1, y2, x1, x2, lancelot.math.math.clamp(x, x1, x2));
         if (rect2.getBottom() > y || this._slopes.length) {
           this._grounded = true;
-          this._slopes.push({ x: t.x, y: t.y });
+          let idx = this._slopes.findIndex((s) => s.x == t.x && s.y == t.y);
+          if (idx == -1) {
+            this._slopes.push({ x: t.x, y: t.y });
+          }
           if (rect2.getBottom() > y) {
             this._entity.transform.position.y = y - rect2.height / 2;
             this._velocity.y = 0;
@@ -5962,6 +6206,7 @@ void main() {
       this._remote = params.remote ?? false;
       this._remoteFirstUpdate = false;
       this._roomCreated = false;
+      this._ping = 0;
     }
     start() {
       const sprite = this.getComponent("sprite");
@@ -6056,6 +6301,10 @@ void main() {
       }
       this._updateSprite();
       this.updatePhysics(dt);
+      this._entity._scene.renderer.textRenderer.add("Ping: " + this._ping + " ms", 0, 0, this._entity._scene.camera.ui, {
+        fontSize: "20px",
+        color: "cyan"
+      });
     }
     _updateSprite() {
       const sprite = this.getComponent("sprite");
@@ -6114,10 +6363,14 @@ void main() {
     _createRoom() {
       const serverEntity = this._entity._scene.createEntity("server");
       serverEntity.addComponent("server", new ChannelServerController2({
-        room: TEST_ROOM,
         host: SIGNAL_SERVER_HOST,
-        refreshRate: REFRESH_RATE,
-        rtcConfig: RTC_CONFIG
+        updateRate: REFRESH_RATE,
+        rtcConfig: RTC_CONFIG,
+        room: {
+          name: TEST_ROOM,
+          appName: APP_NAME,
+          description: "Level1"
+        }
       }));
       this._roomCreated = true;
     }
@@ -6146,6 +6399,10 @@ void main() {
       this.remotePlayers = [];
       this.camera.main._entity.addComponent("controller", new CameraControler());
       this.camera.main._entity.transform.scale.set(4, 4);
+      this.createCamera("ui", {
+        viewport: [0, 0, 300, 150],
+        wcWidth: 300
+      });
       const tilemap2 = lancelot.utils.Store.get("tilemap");
       const levelMap = this.createEntity("levelMap");
       levelMap.addComponent("tilemap", new lancelot.graphics.OrthogonalMap(tilemap2));
@@ -6166,8 +6423,10 @@ void main() {
             player.transform.position.set(o.x, o.y);
             player.addComponent("client", new ChannelClientController2({
               host: SIGNAL_SERVER_HOST,
-              refreshRate: REFRESH_RATE,
-              rtcConfig: RTC_CONFIG
+              updateRate: REFRESH_RATE,
+              rtcConfig: RTC_CONFIG,
+              appName: APP_NAME,
+              serializer: player.getComponent("Serializer")
             }));
             player.registerHandler("connect", () => {
               this.onPlayerConnect();
@@ -6185,6 +6444,9 @@ void main() {
               let entity = this.createPlayer(true);
               entity.getComponent("controller").socketId = msg2.socketId;
             });
+            player.registerHandler("ping", (msg2) => {
+              player.getComponent("controller")._ping = msg2.value;
+            });
             player.registerHandler("leave", (msg2) => {
               const entityToRemove = this.remotePlayers.find((e) => e.getComponent("controller").socketId == msg2.socketId);
               this.removeEntity(entityToRemove);
@@ -6196,7 +6458,7 @@ void main() {
       });
     }
     onPlayerConnect() {
-      const socketId = this.player.getComponent("client")._channelClient.signalServer.socket.id;
+      const socketId = this.player.getComponent("client")._channelClient.socketId;
       this.player.getComponent("controller").socketId = socketId;
     }
     onPlayerDisconnect() {

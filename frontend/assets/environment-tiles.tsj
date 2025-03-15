@@ -1,12 +1,12 @@
 { "columns":19,
- "image":"..\/..\/Tiled\/grotto-escape\/environment-tiles_extruded.png",
+ "image":"environment-tiles_extruded.png",
  "imageheight":288,
  "imagewidth":342,
  "margin":1,
  "name":"environment-tiles",
  "spacing":2,
  "tilecount":304,
- "tiledversion":"1.10.0",
+ "tiledversion":"1.11.2",
  "tileheight":16,
  "tiles":[
         {

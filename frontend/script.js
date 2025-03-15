@@ -5,6 +5,7 @@ const { ChannelServerController, ChannelClientController } = lancelot.network;
 
 const TILE_SIZE = 16;
 const TEST_ROOM = "GrottoTest";
+const APP_NAME = "Grotto";
 const SIGNAL_SERVER_HOST =  "localhost:8080"; //"https://grotto-online.onrender.com";
 const REFRESH_RATE = 1000 / 60;
 const RTC_CONFIG = {
@@ -220,7 +221,10 @@ class Mover extends lancelot.Component {
 
             if (rect.getBottom() > y || this._slopes.length) {
                 this._grounded = true;
-                this._slopes.push({ x: t.x, y: t.y });
+                let idx = this._slopes.findIndex(s => s.x == t.x && s.y == t.y);
+                if(idx == -1) {
+                    this._slopes.push({ x: t.x, y: t.y });
+                }
                 if (rect.getBottom() > y) {
                     this._entity.transform.position.y = y - rect.height / 2;
                     this._velocity.y = 0;
@@ -287,6 +291,7 @@ class PlayerController extends Mover {
         this._remote = params.remote ?? false;
         this._remoteFirstUpdate = false;
         this._roomCreated = false;
+        this._ping = 0;
     }
     start() {
         const sprite = this.getComponent("sprite");
@@ -401,6 +406,11 @@ class PlayerController extends Mover {
         this._updateSprite();
 
         this.updatePhysics(dt);
+
+        this._entity._scene.renderer.textRenderer.add("Ping: " + this._ping + " ms", 0, 0, this._entity._scene.camera.ui, {
+            fontSize: "20px",
+            color: "cyan"
+        });
     }
 
     _updateSprite() {
@@ -473,10 +483,14 @@ class PlayerController extends Mover {
     _createRoom() {
         const serverEntity = this._entity._scene.createEntity("server");
         serverEntity.addComponent("server", new ChannelServerController({
-            room: TEST_ROOM,
             host: SIGNAL_SERVER_HOST,
-            refreshRate: REFRESH_RATE,
-            rtcConfig: RTC_CONFIG
+            updateRate: REFRESH_RATE,
+            rtcConfig: RTC_CONFIG,
+            room: {
+                name: TEST_ROOM,
+                appName: APP_NAME,
+                description: "Level1"
+            }
         }));
 
         this._roomCreated = true;
@@ -514,6 +528,11 @@ class MyScene extends lancelot.Scene {
         this.camera.main._entity.addComponent("controller", new CameraControler());
         this.camera.main._entity.transform.scale.set(4, 4);
 
+        this.createCamera("ui", {
+            viewport: [0, 0, 300, 150],
+            wcWidth: 300
+        });
+
         const tilemap = lancelot.utils.Store.get("tilemap");
         const levelMap = this.createEntity("levelMap");
         levelMap.addComponent("tilemap", new lancelot.graphics.OrthogonalMap(tilemap));
@@ -534,8 +553,10 @@ class MyScene extends lancelot.Scene {
                     player.transform.position.set(o.x, o.y);
                     player.addComponent("client", new ChannelClientController({
                         host: SIGNAL_SERVER_HOST,
-                        refreshRate: REFRESH_RATE,
-                        rtcConfig: RTC_CONFIG
+                        updateRate: REFRESH_RATE,
+                        rtcConfig: RTC_CONFIG,
+                        appName: APP_NAME,
+                        serializer: player.getComponent("Serializer")
                     }));
                     player.registerHandler("connect", () => {
                         this.onPlayerConnect();
@@ -554,6 +575,10 @@ class MyScene extends lancelot.Scene {
                         entity.getComponent("controller").socketId = msg.socketId;
 
                     });
+                    player.registerHandler("ping", (msg) => {
+                        player.getComponent("controller")._ping = msg.value;
+
+                    });
                     player.registerHandler("leave", (msg) => {
                         const entityToRemove = this.remotePlayers.find(e => e.getComponent("controller").socketId == msg.socketId);
                         this.removeEntity(entityToRemove);
@@ -566,7 +591,7 @@ class MyScene extends lancelot.Scene {
     }
 
     onPlayerConnect() {
-        const socketId = this.player.getComponent("client")._channelClient.signalServer.socket.id;
+        const socketId = this.player.getComponent("client")._channelClient.socketId;
         this.player.getComponent("controller").socketId = socketId;
     }
 
@@ -578,6 +603,7 @@ class MyScene extends lancelot.Scene {
     }
 
     onPlayerData(data) {
+        
         for (let entityData of data) {
             if (entityData.socketId == this.player.getComponent("controller").socketId) {
                 continue;
